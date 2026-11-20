@@ -1,0 +1,4 @@
+package com.mailook.closet.enums;
+
+public enum StorageStatus {
+}

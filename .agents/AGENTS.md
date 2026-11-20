@@ -90,7 +90,7 @@
 ## 2. 기술 스택
 
 - Java 21, Spring Boot, Spring AI 1.1(OpenAI), Spring Security, JWT
-- 데이터 접근: **MyBatis (Mapper 인터페이스 + XML)**. JPA를 쓰지 않습니다.
+- 데이터 접근: **MyBatis (DAO 클래스 + XML)**. DAO가 `SqlSessionTemplate`으로 XML의 SQL을 부릅니다. JPA를 쓰지 않고, Mapper 인터페이스(`@Mapper`)도 쓰지 않습니다.
 - DB: PostgreSQL(Docker, 포트 5433), Redis(날씨 원본 캐시). pgvector는 P2에서만 씁니다.
 - 외부 API: 기상청 단기·중기예보, 카카오 지도(좌표·주소)
 - 프론트는 Next.js(JavaScript)이고, httpOnly 쿠키로 로그인 상태를 주고받습니다.
@@ -116,30 +116,31 @@
 
 ### 계층
 
-`Controller → Service → Mapper(인터페이스) → Mapper XML(SQL)`
+`Controller → Service → DAO → Mapper XML(SQL)`
 
 - Controller: 요청·응답, 입력 검증, 로그인 사용자 꺼내기
 - Service: 로직, 트랜잭션
-- Mapper: `@Mapper` 인터페이스. XML은 `src/main/resources/mapper/{도메인}/` 아래
+- DAO: `@Repository` 클래스. `SqlSessionTemplate`으로 `"namespace.id"`를 넘겨 SQL을 실행합니다(예: `sqlSession.selectList("ClothesMapper.selectByUser", userId)`).
+- Mapper XML: `src/main/resources/mapper/{도메인}/` 아래. `namespace`는 파일 이름과 같게(`ClothesMapper.xml` → `ClothesMapper`). SQL id는 문자열이라 오타가 실행할 때 드러나므로, DAO의 문자열과 XML의 namespace·id를 똑같이 맞춥니다.
 - Domain: 테이블 한 줄에 맞는 객체. DTO: 요청·응답 모양(`XxxCreateRequest`, `XxxResponse`)
 
 ### 반드시 지킬 것
 
-- **다른 도메인의 Mapper를 직접 부르지 않습니다.** 다른 도메인 데이터는 그 도메인의 Service로만 읽습니다. (예: 추천은 옷장 데이터를 `ClosetCandidateService`로만 읽음)
-- **도메인 패키지 안에 하위 폴더를 만들지 않습니다.** 파일을 바로 둡니다.
-- Mapper는 테이블 묶음 단위로 하나입니다. 부모 테이블과 딸린 테이블은 같은 Mapper가 맡습니다.
-  - PlaceMapper: places, place_schedules
-  - ClothesMapper: clothes, clothes_occasion_tags
-  - WearRecordMapper: wear_records, wear_record_items
-  - RecommendationMapper: recommendations, recommendation_items, recommendation_weathers
-  - FeedbackMapper: feedbacks, feedback_weathers, feedback_body_parts, feedback_weather_factors, feedback_day_contexts
-  - 나머지는 테이블 하나에 Mapper 하나
+- **다른 도메인의 DAO를 직접 부르지 않습니다.** 다른 도메인 데이터는 그 도메인의 Service로만 읽습니다. (예: 추천은 옷장 데이터를 `ClosetCandidateService`로만 읽음)
+- **도메인 패키지 아래에 계층 패키지를 둡니다:** `controller`, `service`, `dao`, `domain`(테이블 한 줄 객체), `dto`, `enums`. 이 여섯 가지 외의 패키지는 만들지 않고, 필요하면 먼저 물어봅니다. LLM 호출·외부 API·계산 클래스(ClothesClassifier, KmaClient, DeviationCalculator 등)는 `service`에 둡니다.
+- DAO와 XML은 테이블 묶음 단위로 하나씩 짝을 맞춥니다. 부모 테이블과 딸린 테이블은 같은 DAO·XML이 맡습니다.
+  - PlaceDao / PlaceMapper.xml: places, place_schedules
+  - ClothesDao / ClothesMapper.xml: clothes, clothes_occasion_tags
+  - WearRecordDao / WearRecordMapper.xml: wear_records, wear_record_items
+  - RecommendationDao / RecommendationMapper.xml: recommendations, recommendation_items, recommendation_weathers
+  - FeedbackDao / FeedbackMapper.xml: feedbacks, feedback_weathers, feedback_body_parts, feedback_weather_factors, feedback_day_contexts
+  - 나머지는 테이블 하나에 DAO·XML 하나
 
 ### 패키지
 
 ```
 src/main/java/com/mailook/
-├─ global/       공통 응답·예외·에러 코드, Security·JWT, MyBatis·Redis·AI(기능별 ChatClient)·Web 설정, 공용 ENUM(DayOfWeek, Situation, WeatherMoment)
+├─ global/       response, exception, security, config, enums (공통 응답·예외·에러 코드, Security·JWT, MyBatis·Redis·AI·Web 설정, 공용 ENUM)
 ├─ user/         회원·설정
 ├─ place/        장소·동선 (RouteService)
 ├─ closet/       옷·보관 위치·후보 조회 (ClosetCandidateService)
@@ -151,7 +152,9 @@ src/main/java/com/mailook/
 └─ preference/   성향·성향 갱신 도구
 ```
 
-한 도메인만 쓰는 ENUM은 그 도메인 패키지에, 여러 도메인이 쓰는 ENUM은 `global`에 둡니다.
+각 도메인 패키지 안은 `controller/`, `service/`, `dao/`, `domain/`, `dto/`, `enums/`로 나눕니다(예: `com.mailook.closet.dao.ClothesDao`). 파일이 없는 계층 패키지는 만들지 않습니다(예: `warmth`는 `service`, `dto`만).
+
+한 도메인만 쓰는 ENUM은 그 도메인의 `enums`에, 여러 도메인이 쓰는 ENUM은 `global/enums`에 둡니다. `enum`은 자바 예약어라 패키지 이름으로 쓸 수 없어서 `enums`입니다.
 
 ## 5. API 규칙
 
@@ -231,7 +234,8 @@ src/main/java/com/mailook/
 ## 9. 하지 말 것
 
 - JPA, Repository를 추가하지 않습니다.
-- 다른 도메인의 Mapper를 직접 주입하지 않습니다.
+- 다른 도메인의 DAO를 직접 주입하지 않습니다.
+- Mapper 인터페이스(`@Mapper`)를 만들지 않습니다. DAO 클래스로 씁니다.
 - LLM에게 clo·보정 계산을 맡기지 않습니다.
 - 보온 계산을 추천과 피드백에서 따로 구현하지 않습니다.
 - 날씨 스냅샷과 지난 추천 버전을 덮어쓰거나 지우지 않습니다.
