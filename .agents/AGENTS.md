@@ -90,7 +90,7 @@
 ## 2. 기술 스택
 
 - Java 21, Spring Boot, Spring AI 1.1(OpenAI), Spring Security, JWT
-- 데이터 접근: **MyBatis (DAO 클래스 + XML)**. DAO가 `SqlSessionTemplate`으로 XML의 SQL을 부릅니다. JPA를 쓰지 않고, Mapper 인터페이스(`@Mapper`)도 쓰지 않습니다.
+- 데이터 접근: **MyBatis (DAO 인터페이스 `@Mapper` + XML)**. DAO는 `@Mapper`를 붙인 인터페이스이고, 메서드 이름이 XML의 SQL id와 이어집니다. JPA를 쓰지 않습니다.
 - DB: PostgreSQL(Docker, 포트 5433), Redis(날씨 원본 캐시). pgvector는 P2에서만 씁니다.
 - 외부 API: 기상청 단기·중기예보, 카카오 지도(좌표·주소)
 - 프론트는 Next.js(JavaScript)이고, httpOnly 쿠키로 로그인 상태를 주고받습니다.
@@ -99,8 +99,8 @@
 
 | 담당 | 도메인 |
 |---|---|
-| 전이레 | 공통 기반(Security·JWT·LLM 설정), 날씨·체감온도·캐시, 보온 계산 공통 모듈, 피드백, 성향, 프론트 틀 |
-| 정동화 | 회원, 설정, 장소·동선(카카오 지도, 요일·시간) |
+| 전이레 | 공통 기반 설정(`global/config`: MyBatis·Redis·LLM(AiConfig)·Web), 날씨·체감온도·캐시, 보온 계산 공통 모듈, 피드백, 성향, 프론트 틀 |
+| 정동화 | 회원, 설정, 장소·동선(카카오 지도, 요일·시간), 로그인 보안(`global/security`: SecurityConfig·JwtProvider·JwtAuthenticationFilter·LoginUser, httpOnly 쿠키·CORS credentials) |
 | 강민주 | 옷장, 보관 위치, 착용 기록, 옷 사진 AI 분류, 공통 기반 일부(응답 형식·예외 처리·에러 코드·시간 자동 기록) |
 | 최수인 | 추천, 챙길 것, 환절기 |
 
@@ -120,8 +120,8 @@
 
 - Controller: 요청·응답, 입력 검증, 로그인 사용자 꺼내기
 - Service: 로직, 트랜잭션
-- DAO: `@Repository` 클래스. `SqlSessionTemplate`으로 `"namespace.id"`를 넘겨 SQL을 실행합니다(예: `sqlSession.selectList("ClothesMapper.selectByUser", userId)`).
-- Mapper XML: `src/main/resources/mapper/{도메인}/` 아래. `namespace`는 파일 이름과 같게(`ClothesMapper.xml` → `ClothesMapper`). SQL id는 문자열이라 오타가 실행할 때 드러나므로, DAO의 문자열과 XML의 namespace·id를 똑같이 맞춥니다.
+- DAO: `@Mapper`를 붙인 인터페이스입니다(예: `ClothesDao`). 구현 클래스와 `SqlSessionTemplate`은 쓰지 않고, `@MapperScan`도 같이 쓰지 않습니다. 파라미터가 2개 이상이면 `@Param`을 붙입니다.
+- Mapper XML: `src/main/resources/mapper/{도메인}/` 아래(예: `ClothesMapper.xml`). `namespace`는 DAO 인터페이스의 전체 이름(`com.mailook.closet.dao.ClothesDao`), SQL id는 DAO 메서드 이름과 똑같이 맞춥니다.
 - Entity: 테이블 한 줄에 맞는 객체. DTO: 요청·응답 모양(`XxxCreateRequest`, `XxxResponse`)
 
 ### 반드시 지킬 것
@@ -172,13 +172,14 @@ src/main/java/com/mailook/
 
 - **삭제는 모두 soft delete**입니다. 행을 지우지 않고 `deleted_at`을 채웁니다. 조회 SQL에는 `deleted_at IS NULL` 조건을 꼭 넣습니다.
   - 예외: 탈퇴 회원은 30일 뒤 배치로 연결 데이터까지 완전 삭제합니다. 그 30일 동안 같은 이메일로 재가입할 수 없습니다.
-  - 피드백 전 착용 기록 삭제와 옷 자리 태그 떼기를 soft로 할지는 아직 정하지 않았습니다(담당: 강민주).
-- 보관 위치를 지우면 그 위치에 있던 옷의 `storage_location_id`를 null로 비웁니다(= "보관 위치 자유").
+  - 피드백 전 착용 기록 삭제와 옷 상황 태그 떼기를 soft로 할지는 아직 정하지 않았습니다(담당: 강민주).
+- 보관 위치를 지우면 그 위치에 있던 옷의 `storage_location_id`를 null로 비웁니다(= "지정 없음").
 - places, storage_locations의 이름에는 UNIQUE를 걸지 않습니다.
 - 1:1 테이블(user_settings, preferences)은 `user_id`가 PK 겸 FK입니다. 회원가입 트랜잭션에서 users insert 직후 같이 만듭니다.
 - 같은 옷 여러 벌은 한 벌에 한 줄이고 `same_group_id`로 묶습니다. 새 옷은 `<selectKey order="BEFORE">`로 id를 먼저 받아 `clothes_id`와 `same_group_id`에 같은 값을 넣습니다.
 - 착용 기록은 하루 1개입니다. 피드백 전에는 덮어쓰고, **피드백이 저장되면 잠깁니다**(수정·삭제 불가).
-- 추천은 **버전으로 쌓습니다.** "다른 조합 보기"나 재추천은 새 줄이고, 이전 추천을 고치지 않습니다. 고르지 않은 버전도 지우지 않습니다(비선호 데이터).
+- 추천은 **버전으로 쌓습니다.** "다른 조합 보기"나 재추천은 새 줄이고, 이전 추천을 고치지 않습니다. 고르지 않은 버전도 지우지 않습니다(비선호 데이터). ‘바꾸기’(P1)로 자리를 바꾼 조합도 `recommendation_items`를 고치지 않고, 착용 기록(`wear_record_items`)에 실제 입은 옷으로 저장합니다.
+- 환절기 카드(`season_alerts`, P1)는 전날 배치가 만들고 홈은 읽기만 합니다. ‘꺼냈어요’면 DONE + 그 옷 `storage_status = AVAILABLE`.
 - 날씨 스냅샷(`weather_snapshots`)은 기상청 격자·시각 단위로 공유하고, **덮어쓰지도 지우지도 않습니다.** 같은 (nx, ny, forecast_at, kind)의 최신 값과 같으면 새 줄을 만들지 않고 재사용합니다.
 - 장소 주소는 동 단위까지만 저장하고, 위경도는 소수점 둘째 자리로 반올림해 저장합니다.
 
@@ -201,15 +202,18 @@ src/main/java/com/mailook/
   - 최소 0.36(반팔+반바지). 그보다 더운 날은 통풍 높은 옷을 먼저 고릅니다.
 - 적용 비율 = min(1, |체감 − 20| ÷ 4)
 - 보정은 두 개입니다. 체감 20° 미만인 시점은 추위 보정(cold_offset), 20° 이상은 더위 보정(heat_offset). 범위 −5 ~ +5°, +면 따뜻하게.
-- 화면의 따뜻한 정도 10단계 = round(clo ÷ 0.08). 사용자가 단계를 고치면 clo = 단계 × 0.08.
+- 화면의 따뜻한 정도 10단계 = round(clo ÷ 0.08)(0 이하는 1). 이 변환은 **프론트가** 합니다. 백엔드는 clo만 주고받고 단계(warmthLevel)를 만들지 않습니다.
 - 실내 검사: 아우터·액세서리를 뺀 조합이 장소 실내 온도(HOT 26° / NORMAL 22° / COLD 18°)와 ±3° 안이면 통과.
-- "오늘은 몸이 안 좋아요"(unwell): 그날 기준 온도를 4° 낮춰 계산하고, 그날 피드백은 학습에서 뺍니다.
+- "오늘은 몸이 안 좋아요"(unwell): 켜진 상태는 `user_settings.unwell`(끌 때까지 유지), 다시 물어본 날은 `user_settings.unwell_asked_on`에 저장하고, 추천을 만들 때 `recommendations.unwell`로 복사합니다. 그날 기준 온도를 4° 낮춰 계산하고, 그날 피드백은 학습에서 뺍니다.
 
 ### 바깥 시간 목록 (OutdoorMomentService)
 
-- 장소 일정으로 그날 밖에 있는 순간을 만듭니다: DEPART(집 출발), MOVE(장소 간 이동, 도착 장소 날씨), STAY_OUTDOOR(OUTDOOR·MIXED 장소에 머무는 동안), RETURN(귀가, 집 날씨), DAYTIME(일정 없는 날, 집 근처 12~18시).
+- 장소 일정으로 그날 밖에 있는 순간을 만듭니다: DEPART(집 출발), MOVE(장소 간 이동), STAY_OUTDOOR(OUTDOOR·MIXED 장소에 머무는 동안), RETURN(귀가), DAYTIME(일정 없는 날, 집 근처 12~18시).
+- 시각: DEPART = 집 `depart_time`, MOVE = 떠나는 장소의 `leave_time`, RETURN = 그날 마지막 활동 장소의 `leave_time`. 집의 `arrive_time`(돌아오는 시간)은 동선 표시용이고 계산에 쓰지 않습니다.
+- DEPART·MOVE·RETURN은 있던 곳과 가는 곳의 날씨를 둘 다 조회하고, 체감 20° 미만이면 더 추운 곳, 20° 이상이면 더 더운 곳 값을 그 시점 값으로 씁니다. 화면 표시는 "집 → 직장"처럼 있던 곳 → 가는 곳입니다.
 - STAY_OUTDOOR와 DAYTIME은 그 시간 중 가장 시원한 시각과 가장 더운 시각, 두 줄을 남깁니다.
-- 적정 clo가 가장 높은 시점 하나가 **기준 시점**(`is_deciding`)입니다. 옷은 이 시점에 맞춰 고릅니다.
+- **기준 시점**(`is_deciding`)은 하루에 하나입니다. 체감 20° 미만인 시점이 하나라도 있으면 가장 추운 시점(적정 clo가 가장 높은 시점), 모든 시점이 20° 이상이면 가장 더운 시점입니다. 옷은 이 시점에 맞춰 고르고, 피드백 보정도 이 시점 체감으로 계산합니다.
+- `build(userId, date)`는 `RouteService.getTodayRoute`로 동선을 가져오고, `build(userId, date, route)`는 넘겨받은 동선을 씁니다. ‘오늘 동선 바꾸기’(REQ-412)에서 추천 쪽이 덮어쓴 동선을 넘길 때 씁니다.
 - 시점별 체감 차이가 기준(예: 10°) 이상이면 일교차가 크다고 보고, 겉옷을 입은 상태는 가장 추운 시점에, 벗은 상태는 가장 더운 시점에 맞춥니다.
 
 ### 피드백 → 보정
@@ -220,13 +224,14 @@ src/main/java/com/mailook/
 - 제외: 기준 시점 체감 18~22°(적용 비율 0.5 미만), unwell인 날, "오늘 안 나갔어요"인 날
 - 갱신: 같은 방향 3건 이상일 때만, 최근 10건의 중앙값으로, 한 번에 최대 1°까지 움직입니다.
 - 가입 초기값: 추위 덜 탐 −4 / 비슷 0 / 더 탐 +4, 더위 덜 탐 +4 / 비슷 0 / 더 탐 −4
+- 가입 후 기본 설정에서 추위·더위 답을 고치면 `PreferenceService.resetOffset`으로 그 보정을 새 초기값으로 다시 맞추고 이력(USER)을 남깁니다.
 - 사용자가 직접 고친 값은 `*_locked = true`이고, AI가 덮어쓰지 않습니다. 바뀔 때마다 `preference_histories`에 남깁니다.
 
 ## 8. LLM 사용 규칙
 
 - 기능별로 ChatClient를 나눕니다(옷 분류, 추천, 성향 요약).
 - **추천**: 코드가 후보 옷을 걸러 넘기고, LLM은 후보 안에서만 조합을 고릅니다. 후보 ID 밖의 응답은 거부합니다. LLM이 고른 조합은 `calcOutfitWarmth`로 검사하고, 맞지 않으면 이유를 붙여 2~3번 다시 요청하고, 그래도 안 되면 규칙 기반 추천으로 대신합니다.
-- LLM에는 장소 이름·동 단위 주소·머무는 시간, 옷의 자리 태그(외출복/출근용/운동복/격식 있는 자리, 없으면 일상), 반영 중인 유저 성향 문장을 맥락으로 넘깁니다. 자리 태그는 코드로 거르지 않습니다.
+- LLM에는 장소 이름·동 단위 주소·머무는 시간, 옷의 상황 태그(외출복/출근용/운동복/격식 있는 자리, 없으면 일상), 반영 중인 유저 성향 문장을 맥락으로 넘깁니다. 상황 태그는 코드로 거르지 않습니다.
 - **피드백 저장**: 저장·관측 날씨 기록·편차 계산·갱신 필요 판단은 동기로 끝냅니다. LLM 성향 갱신(`updatePreference` Tool Calling)과 유저 성향 문장 정리는 비동기입니다.
 - 사용자가 남긴 말(memo)은 프롬프트에서 **지시가 아니라 데이터로만** 다룹니다.
 - 응답은 구조화 출력(정해진 JSON 형식)으로 받습니다. 챗봇처럼 자유 대화로 쓰지 않습니다.
@@ -235,7 +240,7 @@ src/main/java/com/mailook/
 
 - JPA, Repository를 추가하지 않습니다.
 - 다른 도메인의 DAO를 직접 주입하지 않습니다.
-- Mapper 인터페이스(`@Mapper`)를 만들지 않습니다. DAO 클래스로 씁니다.
+- DAO 구현 클래스나 `SqlSessionTemplate` 직접 호출을 만들지 않습니다. DAO는 `@Mapper` 인터페이스로 씁니다.
 - LLM에게 clo·보정 계산을 맡기지 않습니다.
 - 보온 계산을 추천과 피드백에서 따로 구현하지 않습니다.
 - 날씨 스냅샷과 지난 추천 버전을 덮어쓰거나 지우지 않습니다.
