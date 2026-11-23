@@ -78,7 +78,7 @@
 ## 실행 명령
 
 - Gradle: `./gradlew build`, `./gradlew bootRun`
-- DB: Docker의 PostgreSQL(포트 5433, DB `mAILook`). 접속 정보는 환경변수로 받습니다.
+- DB: Docker의 PostgreSQL(포트 5433, DB `mailook`). 접속 정보는 환경변수로 받습니다.
 
 ## 1. 프로젝트 한 줄 요약
 
