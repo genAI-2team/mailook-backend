@@ -122,12 +122,12 @@
 - Service: 로직, 트랜잭션
 - DAO: `@Repository` 클래스. `SqlSessionTemplate`으로 `"namespace.id"`를 넘겨 SQL을 실행합니다(예: `sqlSession.selectList("ClothesMapper.selectByUser", userId)`).
 - Mapper XML: `src/main/resources/mapper/{도메인}/` 아래. `namespace`는 파일 이름과 같게(`ClothesMapper.xml` → `ClothesMapper`). SQL id는 문자열이라 오타가 실행할 때 드러나므로, DAO의 문자열과 XML의 namespace·id를 똑같이 맞춥니다.
-- Domain: 테이블 한 줄에 맞는 객체. DTO: 요청·응답 모양(`XxxCreateRequest`, `XxxResponse`)
+- Entity: 테이블 한 줄에 맞는 객체. DTO: 요청·응답 모양(`XxxCreateRequest`, `XxxResponse`)
 
 ### 반드시 지킬 것
 
 - **다른 도메인의 DAO를 직접 부르지 않습니다.** 다른 도메인 데이터는 그 도메인의 Service로만 읽습니다. (예: 추천은 옷장 데이터를 `ClosetCandidateService`로만 읽음)
-- **도메인 패키지 아래에 계층 패키지를 둡니다:** `controller`, `service`, `dao`, `domain`(테이블 한 줄 객체), `dto`, `enums`. 이 여섯 가지 외의 패키지는 만들지 않고, 필요하면 먼저 물어봅니다. LLM 호출·외부 API·계산 클래스(ClothesClassifier, KmaClient, DeviationCalculator 등)는 `service`에 둡니다.
+- **도메인 패키지 아래에 계층 패키지를 둡니다:** `controller`, `service`, `dao`, `entity`(테이블 한 줄 객체), `dto`, `enums`. 이 여섯 가지 외의 패키지는 만들지 않고, 필요하면 먼저 물어봅니다. LLM 호출·외부 API·계산 클래스(ClothesClassifier, KmaClient, DeviationCalculator 등)는 `service`에 둡니다.
 - DAO와 XML은 테이블 묶음 단위로 하나씩 짝을 맞춥니다. 부모 테이블과 딸린 테이블은 같은 DAO·XML이 맡습니다.
   - PlaceDao / PlaceMapper.xml: places, place_schedules
   - ClothesDao / ClothesMapper.xml: clothes, clothes_occasion_tags
@@ -152,7 +152,7 @@ src/main/java/com/mailook/
 └─ preference/   성향·성향 갱신 도구
 ```
 
-각 도메인 패키지 안은 `controller/`, `service/`, `dao/`, `domain/`, `dto/`, `enums/`로 나눕니다(예: `com.mailook.closet.dao.ClothesDao`). 파일이 없는 계층 패키지는 만들지 않습니다(예: `warmth`는 `service`, `dto`만).
+각 도메인 패키지 안은 `controller/`, `service/`, `dao/`, `entity/`, `dto/`, `enums/`로 나눕니다(예: `com.mailook.closet.dao.ClothesDao`). 파일이 없는 계층 패키지는 만들지 않습니다(예: `warmth`는 `service`, `dto`만).
 
 한 도메인만 쓰는 ENUM은 그 도메인의 `enums`에, 여러 도메인이 쓰는 ENUM은 `global/enums`에 둡니다. `enum`은 자바 예약어라 패키지 이름으로 쓸 수 없어서 `enums`입니다.
 

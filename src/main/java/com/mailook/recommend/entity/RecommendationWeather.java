@@ -1,4 +1,4 @@
-package com.mailook.recommend.domain;
+package com.mailook.recommend.entity;
 
 public class RecommendationWeather {
 }
