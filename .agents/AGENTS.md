@@ -10,9 +10,9 @@
 1. **현재 브랜치를 먼저 확인합니다** (`git branch --show-current`).
 2. **작업 브랜치(`타입/작업-내용`, 예: `feat/closet-crud`)에 있으면** 브랜치를 새로 만들지 않고 그 브랜치에서 바로 작업합니다.
 3. **`main` 또는 `develop`에 있으면** 지시받은 작업에 맞는 작업 브랜치를 새로 만든 뒤 작업합니다.
-   - 이때 지시가 불분명해서 무엇을 만들거나 고칠지, 어떤 타입(feat/fix/...)인지 정할 수 없으면 **경고 메시지만 남기고 아무 작업도 하지 않습니다.** 브랜치도 만들지 않고, 파일도 고치지 않습니다.
-   - 경고 예: `⚠️ 지시가 불분명해 작업하지 않았습니다. 무엇을 바꿔야 하는지(대상 기능·화면·API)와 작업 종류(기능 추가/버그 수정 등)를 알려 주세요.`
-   - 작업 브랜치는 항상 **최신 develop에서** 만듭니다. main에 있었다면 develop으로 옮긴 뒤 만듭니다.
+    - 이때 지시가 불분명해서 무엇을 만들거나 고칠지, 어떤 타입(feat/fix/...)인지 정할 수 없으면 **경고 메시지만 남기고 아무 작업도 하지 않습니다.** 브랜치도 만들지 않고, 파일도 고치지 않습니다.
+    - 경고 예: `⚠️ 지시가 불분명해 작업하지 않았습니다. 무엇을 바꿔야 하는지(대상 기능·화면·API)와 작업 종류(기능 추가/버그 수정 등)를 알려 주세요.`
+    - 작업 브랜치는 항상 **최신 develop에서** 만듭니다. main에 있었다면 develop으로 옮긴 뒤 만듭니다.
    ```bash
    git switch develop
    git pull origin develop
@@ -78,7 +78,7 @@
 ## 실행 명령
 
 - Gradle: `./gradlew build`, `./gradlew bootRun`
-- DB: Docker의 PostgreSQL(포트 5433, DB `mailook`). 접속 정보는 환경변수로 받습니다.
+- DB: Docker의 PostgreSQL(포트 5433, DB `postgres`). 접속 정보는 환경변수로 받습니다.
 
 ## 1. 프로젝트 한 줄 요약
 
@@ -99,10 +99,10 @@
 
 | 담당 | 도메인 |
 |---|---|
-| 전이레 | 공통 기반 설정(`global/config`: MyBatis·Redis·LLM(AiConfig)·Web), 날씨·체감온도·캐시, 보온 계산 공통 모듈, 피드백, 성향, 프론트 틀 |
+| 전이레 | 공통 기반 설정(`global/config`: MyBatis·Redis), LLM 설정(`ai/config`: AiConfig), 공용 ENUM(`global/enums`), 날씨·체감온도·캐시, 보온 계산 공통 모듈, 피드백, 성향(+ `ai/preference`), 프론트 틀 |
 | 정동화 | 회원, 설정, 장소·동선(카카오 지도, 요일·시간), 로그인 보안(`global/security`: SecurityConfig·JwtProvider·JwtAuthenticationFilter·LoginUser, httpOnly 쿠키·CORS credentials) |
-| 강민주 | 옷장, 보관 위치, 착용 기록, 옷 사진 AI 분류, 공통 기반 일부(응답 형식·예외 처리·에러 코드·시간 자동 기록) |
-| 최수인 | 추천, 챙길 것, 환절기 |
+| 강민주 | 옷장, 보관 위치, 착용 기록, 옷 사진 AI 분류(`ai/classify`), 공통 기반 일부(응답 형식·예외 처리·에러 코드·시간 자동 기록) |
+| 최수인 | 추천(+ `ai/recommend`), 챙길 것, 환절기 |
 
 ### 담당 밖 파일 수정 규칙
 
@@ -121,26 +121,27 @@
 - Controller: 요청·응답, 입력 검증, 로그인 사용자 꺼내기
 - Service: 로직, 트랜잭션
 - DAO: `@Mapper`를 붙인 인터페이스입니다(예: `ClothesDao`). 구현 클래스와 `SqlSessionTemplate`은 쓰지 않고, `@MapperScan`도 같이 쓰지 않습니다. 파라미터가 2개 이상이면 `@Param`을 붙입니다.
-- Mapper XML: `src/main/resources/mapper/{도메인}/` 아래(예: `ClothesMapper.xml`). `namespace`는 DAO 인터페이스의 전체 이름(`com.mailook.closet.dao.ClothesDao`), SQL id는 DAO 메서드 이름과 똑같이 맞춥니다.
+- Mapper XML: `src/main/resources/mapper/{도메인}/` 아래(예: `ClothesMapper.xml`, `mapper-locations=classpath:mapper/*/*.xml`). MyBatis 동작 설정은 `mapper/mybatis_config.xml`이고 설정 클래스는 없습니다. 타입 별칭은 entity만(`com.mailook.*.entity`), dto는 전체 이름으로 씁니다. `namespace`는 DAO 인터페이스의 전체 이름(`com.mailook.closet.dao.ClothesDao`), SQL id는 DAO 메서드 이름과 똑같이 맞춥니다.
 - Entity: 테이블 한 줄에 맞는 객체. DTO: 요청·응답 모양(`XxxCreateRequest`, `XxxResponse`)
 
 ### 반드시 지킬 것
 
 - **다른 도메인의 DAO를 직접 부르지 않습니다.** 다른 도메인 데이터는 그 도메인의 Service로만 읽습니다. (예: 추천은 옷장 데이터를 `ClosetCandidateService`로만 읽음)
-- **도메인 패키지 아래에 계층 패키지를 둡니다:** `controller`, `service`, `dao`, `entity`(테이블 한 줄 객체), `dto`, `enums`. 이 여섯 가지 외의 패키지는 만들지 않고, 필요하면 먼저 물어봅니다. LLM 호출·외부 API·계산 클래스(ClothesClassifier, KmaClient, DeviationCalculator 등)는 `service`에 둡니다.
+- **도메인 패키지 아래에 계층 패키지를 둡니다:** `controller`, `service`, `dao`, `entity`(테이블 한 줄 객체), `dto`, `enums`. 이 여섯 가지 외의 패키지는 만들지 않고, 필요하면 먼저 물어봅니다. 외부 API·계산 클래스(KmaClient, DeviationCalculator 등)는 `service`에 둡니다. **LLM을 부르는 코드는 도메인에 두지 않고 최상위 `ai` 패키지에 둡니다**(아래 '패키지' 참고).
 - DAO와 XML은 테이블 묶음 단위로 하나씩 짝을 맞춥니다. 부모 테이블과 딸린 테이블은 같은 DAO·XML이 맡습니다.
-  - PlaceDao / PlaceMapper.xml: places, place_schedules
-  - ClothesDao / ClothesMapper.xml: clothes, clothes_occasion_tags
-  - WearRecordDao / WearRecordMapper.xml: wear_records, wear_record_items
-  - RecommendationDao / RecommendationMapper.xml: recommendations, recommendation_items, recommendation_weathers
-  - FeedbackDao / FeedbackMapper.xml: feedbacks, feedback_weathers, feedback_body_parts, feedback_weather_factors, feedback_day_contexts
-  - 나머지는 테이블 하나에 DAO·XML 하나
+    - PlaceDao / PlaceMapper.xml: places, place_schedules
+    - ClothesDao / ClothesMapper.xml: clothes, clothes_occasion_tags
+    - WearRecordDao / WearRecordMapper.xml: wear_records, wear_record_items
+    - RecommendationDao / RecommendationMapper.xml: recommendations, recommendation_items, recommendation_weathers
+    - FeedbackDao / FeedbackMapper.xml: feedbacks, feedback_weathers, feedback_body_parts, feedback_weather_factors, feedback_day_contexts
+    - 나머지는 테이블 하나에 DAO·XML 하나
 
 ### 패키지
 
 ```
 src/main/java/com/mailook/
-├─ global/       response, exception, security, config, enums (공통 응답·예외·에러 코드, Security·JWT, MyBatis·Redis·AI·Web 설정, 공용 ENUM)
+├─ global/       response, exception, security, config, enums (공통 응답·예외·에러 코드, Security·JWT, MyBatis·Redis 설정, 공용 ENUM)
+├─ ai/           LLM 호출 모음: config(AiConfig, 기능별 ChatClient), classify(옷 분류), recommend(LLM 추천), preference(성향 요약·갱신 도구)
 ├─ user/         회원·설정
 ├─ place/        장소·동선 (RouteService)
 ├─ closet/       옷·보관 위치·후보 조회 (ClosetCandidateService)
@@ -153,6 +154,20 @@ src/main/java/com/mailook/
 ```
 
 각 도메인 패키지 안은 `controller/`, `service/`, `dao/`, `entity/`, `dto/`, `enums/`로 나눕니다(예: `com.mailook.closet.dao.ClothesDao`). 파일이 없는 계층 패키지는 만들지 않습니다(예: `warmth`는 `service`, `dto`만).
+
+`ai` 패키지는 도메인이 아니라 LLM 호출만 모은 곳입니다.
+
+| 패키지 | 클래스 | 담당 |
+|---|---|---|
+| `ai/config` | AiConfig(기능별 ChatClient Bean) | 전이레 |
+| `ai/classify` | ClothesClassifier | 강민주 |
+| `ai/recommend` | LlmRecommender | 최수인 |
+| `ai/preference` | PreferenceSummarizer, PreferenceUpdateTool | 전이레 |
+
+- 기능 폴더 안에는 LLM을 부르는 클래스와, 그 기능의 LLM 응답 형식(구조화 출력용 record/DTO)만 둡니다. 하위 계층 패키지(controller·service·dao)는 만들지 않습니다.
+- `ai`는 도메인 Service만 부릅니다(예: `ClothesService` → `ClothesClassifier`). Controller가 `ai`를 직접 부르지 않습니다.
+- `ai` 안에서는 DAO를 부르지 않습니다. 필요한 데이터는 부르는 Service가 넘겨 주고, 결과 저장도 그 Service가 합니다. Tool Calling(`PreferenceUpdateTool`)이 값을 바꿀 때도 `PreferenceService`를 부릅니다.
+- 보온·보정 계산은 `ai`에서 하지 않고, 검사가 필요하면 `WarmthCalculator`를 부릅니다.
 
 한 도메인만 쓰는 ENUM은 그 도메인의 `enums`에, 여러 도메인이 쓰는 ENUM은 `global/enums`에 둡니다. `enum`은 자바 예약어라 패키지 이름으로 쓸 수 없어서 `enums`입니다.
 
@@ -171,8 +186,8 @@ src/main/java/com/mailook/
 - id는 BIGSERIAL입니다. clothes는 `<selectKey order="BEFORE">SELECT nextval('clothes_clothes_id_seq')</selectKey>`로 id를 먼저 받습니다.
 
 - **삭제는 모두 soft delete**입니다. 행을 지우지 않고 `deleted_at`을 채웁니다. 조회 SQL에는 `deleted_at IS NULL` 조건을 꼭 넣습니다.
-  - 예외: 탈퇴 회원은 30일 뒤 배치로 연결 데이터까지 완전 삭제합니다. 그 30일 동안 같은 이메일로 재가입할 수 없습니다.
-  - 피드백 전 착용 기록 삭제와 옷 상황 태그 떼기를 soft로 할지는 아직 정하지 않았습니다(담당: 강민주).
+    - 예외: 탈퇴 회원은 30일 뒤 배치로 연결 데이터까지 완전 삭제합니다. 그 30일 동안 같은 이메일로 재가입할 수 없습니다.
+    - 피드백 전 착용 기록 삭제와 옷 상황 태그 떼기를 soft로 할지는 아직 정하지 않았습니다(담당: 강민주).
 - 보관 위치를 지우면 그 위치에 있던 옷의 `storage_location_id`를 null로 비웁니다(= "지정 없음").
 - places, storage_locations의 이름에는 UNIQUE를 걸지 않습니다.
 - 1:1 테이블(user_settings, preferences)은 `user_id`가 PK 겸 FK입니다. 회원가입 트랜잭션에서 users insert 직후 같이 만듭니다.
@@ -197,9 +212,9 @@ src/main/java/com/mailook/
 
 - 조합 clo = 0.835 × (입은 옷 clo 합) + 0.16  (ISO 9920. 입는 옷 WEAR만 넣고, 챙길 것 BRING은 넣지 않음)
 - 적정 clo = (31 − 기준 온도) ÷ (0.155 × 활동량)
-  - 기준 온도 = 체감 − 보정 × 적용 비율
-  - 활동량: 바깥 115, 실내 60
-  - 최소 0.36(반팔+반바지). 그보다 더운 날은 통풍 높은 옷을 먼저 고릅니다.
+    - 기준 온도 = 체감 − 보정 × 적용 비율
+    - 활동량: 바깥 115, 실내 60
+    - 최소 0.36(반팔+반바지). 그보다 더운 날은 통풍 높은 옷을 먼저 고릅니다.
 - 적용 비율 = min(1, |체감 − 20| ÷ 4)
 - 보정은 두 개입니다. 체감 20° 미만인 시점은 추위 보정(cold_offset), 20° 이상은 더위 보정(heat_offset). 범위 −5 ~ +5°, +면 따뜻하게.
 - 화면의 따뜻한 정도 10단계 = round(clo ÷ 0.08)(0 이하는 1). 이 변환은 **프론트가** 합니다. 백엔드는 clo만 주고받고 단계(warmthLevel)를 만들지 않습니다.
@@ -229,7 +244,7 @@ src/main/java/com/mailook/
 
 ## 8. LLM 사용 규칙
 
-- 기능별로 ChatClient를 나눕니다(옷 분류, 추천, 성향 요약).
+- LLM 호출 코드는 모두 `ai` 패키지에 둡니다. 기능별로 ChatClient를 나눕니다(옷 분류, 추천, 성향 요약).
 - **추천**: 코드가 후보 옷을 걸러 넘기고, LLM은 후보 안에서만 조합을 고릅니다. 후보 ID 밖의 응답은 거부합니다. LLM이 고른 조합은 `calcOutfitWarmth`로 검사하고, 맞지 않으면 이유를 붙여 2~3번 다시 요청하고, 그래도 안 되면 규칙 기반 추천으로 대신합니다.
 - LLM에는 장소 이름·동 단위 주소·머무는 시간, 옷의 상황 태그(외출복/출근용/운동복/격식 있는 자리, 없으면 일상), 반영 중인 유저 성향 문장을 맥락으로 넘깁니다. 상황 태그는 코드로 거르지 않습니다.
 - **피드백 저장**: 저장·관측 날씨 기록·편차 계산·갱신 필요 판단은 동기로 끝냅니다. LLM 성향 갱신(`updatePreference` Tool Calling)과 유저 성향 문장 정리는 비동기입니다.
