@@ -1,21 +1,37 @@
+
 package com.mailook.global.exception;
 
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
-// 컨트롤러에서 발생한 BusinessException을 HTTP 오류 응답*숫자으로 변환합니다.
+@Slf4j
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
+    // 비즈니스 예외는 지정된 상태 코드와 메시지로 응답합니다.
     @ExceptionHandler(BusinessException.class)
     public ResponseEntity<ErrorResponse> handleBusinessException(BusinessException exception) {
         ErrorCode errorCode = exception.getErrorCode();
-        return ResponseEntity.status(errorCode.getHttpStatus())
-                .body(new ErrorResponse(errorCode.getCode(), errorCode.getMessage()));
+        if (errorCode.getHttpStatus().is5xxServerError()) {
+            log.error("비즈니스 처리 중 서버 오류 발생: {}", errorCode.name(), exception);
+        }
+        return createErrorResponse(errorCode);
     }
 
-    // 클라이언트에는 오류 코드와 안내 메시지만 전달합니다.
-    public record ErrorResponse(String code, String message) {
+    // 예상하지 못한 예외는 원인을 로그에 남기고 공통 서버 오류(500번)로 응답합니다.
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<ErrorResponse> handleException(Exception exception) {
+        log.error("예상하지 못한 오류 발생", exception);
+        return createErrorResponse(ErrorCode.INTERNAL_SERVER_ERROR);
+    }
+
+    private ResponseEntity<ErrorResponse> createErrorResponse(ErrorCode errorCode) {
+        return ResponseEntity.status(errorCode.getHttpStatus())
+                .body(new ErrorResponse(errorCode.getMessage()));
+    }
+
+    public record ErrorResponse(String message) {
     }
 }
