@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.mailook.user.dao.LoginDAO">
+    <sql id="columns">user_id, email, password, nickname, status, withdrawn_at, location_agreed_at,
+        last_login_at, last_logout_at, body_photo_url, created_at, updated_at</sql>
+
+    <insert id="insert" parameterType="com.mailook.user.entity.Login" useGeneratedKeys="true" keyProperty="userId" keyColumn="user_id">
+        INSERT INTO public.users (email, password, nickname, status, location_agreed_at)
+        VALUES (#{email}, #{password}, #{nickname}, 'ACTIVE', #{locationAgreedAt})
+    </insert>
+    <select id="selectById" resultType="com.mailook.user.entity.Login">
+        SELECT <include refid="columns"/> FROM public.users WHERE user_id = #{userId}
+    </select>
+    <select id="selectByEmail" resultType="com.mailook.user.entity.Login">
+        SELECT <include refid="columns"/> FROM public.users WHERE email = #{email}
+    </select>
+    <!-- where: userId(기본키 일치), email(이메일 일치), nickname(닉네임 부분 검색) -->
+    <sql id="searchWhere">
+        <where>
+            status != 'WITHDRAWN'
+            <if test="where != null">
+                <if test="where.userId != null">AND user_id = #{where.userId}</if>
+                <if test="where.email != null and where.email != ''">AND email = #{where.email}</if>
+                <if test="where.nickname != null and where.nickname != ''">AND nickname LIKE '%' || #{where.nickname} || '%'</if>
+            </if>
+        </where>
+    </sql>
+    <select id="selectCount" resultType="int">
+        SELECT COUNT(*) FROM public.users <include refid="searchWhere"/>
+    </select>
+    <select id="selectPage" resultType="com.mailook.user.entity.Login">
+        SELECT <include refid="columns"/> FROM public.users
+        <include refid="searchWhere"/>
+        ORDER BY user_id
+        OFFSET #{pager.startRowIndex} ROWS FETCH NEXT #{pager.rowsPerPage} ROWS ONLY
+    </select>
+    <update id="update" parameterType="com.mailook.user.entity.Login">
+        UPDATE public.users SET
+            email = #{email}, nickname = #{nickname}, password = #{password}, updated_at = CURRENT_TIMESTAMP
+        WHERE user_id = #{userId} AND status = 'ACTIVE'
+    </update>
+    <!-- 탈퇴 기록과 연결 테이블을 보존한다. 실제 삭제는 스키마의 30일 보존 정책에 따른다. -->
+    <update id="deleteById">
+        UPDATE public.users SET status = 'WITHDRAWN', withdrawn_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP
+        WHERE user_id = #{userId} AND status = 'ACTIVE'
+    </update>
+    <update id="updateLastLogin">
+        UPDATE public.users SET last_login_at = CURRENT_TIMESTAMP WHERE user_id = #{userId} AND status = 'ACTIVE'
+    </update>
+    <update id="updateLastLogout">
+        UPDATE public.users SET last_logout_at = CURRENT_TIMESTAMP WHERE user_id = #{userId}
+    </update>
+    <insert id="insertUserSettings">
+        INSERT INTO public.user_settings (user_id) VALUES (#{userId})
+    </insert>
+    <insert id="insertPreferences">
+        INSERT INTO public.preferences (user_id) VALUES (#{userId})
+    </insert>
+</mapper>
