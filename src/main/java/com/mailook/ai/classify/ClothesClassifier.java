@@ -1,4 +1,5 @@
-package com.mailook.closet.service;
+package com.mailook.ai.classify;
+
 import org.springframework.stereotype.Service;
 
 @Service
