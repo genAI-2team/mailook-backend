@@ -91,16 +91,16 @@
 
 - Java 21, Spring Boot, Spring AI 1.1(OpenAI), Spring Security, JWT
 - 데이터 접근: **MyBatis (DAO 인터페이스 `@Mapper` + XML)**. DAO는 `@Mapper`를 붙인 인터페이스이고, 메서드 이름이 XML의 SQL id와 이어집니다. JPA를 쓰지 않습니다.
-- DB: PostgreSQL(Docker, 포트 5433), Redis(날씨 원본 캐시). pgvector는 P2에서만 씁니다.
-- 외부 API: 기상청 단기·중기예보, 카카오 지도(좌표·주소)
-- 프론트는 Next.js(JavaScript)이고, httpOnly 쿠키로 로그인 상태를 주고받습니다.
+- DB: PostgreSQL(Docker, 포트 5433). **Redis는 당장 쓰지 않습니다**(의존성·설정을 넣지 않음). pgvector는 P2에서만 씁니다.
+- 외부 API: 카카오 지도(좌표·주소). **날씨는 지금 모의 데이터(랜덤)로 돌립니다.** 기상청 단기·중기예보 연동은 나중에 같은 인터페이스로 바꿉니다.
+- 프론트는 Next.js(JavaScript)입니다. 로그인하면 JWT를 응답 본문으로 주고, 프론트가 localStorage에 저장해 요청마다 `Authorization: Bearer {토큰}` 헤더로 보냅니다.
 
 ## 3. 담당
 
 | 담당 | 도메인 |
 |---|---|
-| 전이레 | 공통 기반 설정(`global/config`: MyBatis·Redis), LLM 설정(`ai/config`: AiConfig), 공용 ENUM(`global/enums`), 날씨·체감온도·캐시, 보온 계산 공통 모듈, 피드백, 성향(+ `ai/preference`), 프론트 틀 |
-| 정동화 | 회원, 설정, 장소·동선(카카오 지도, 요일·시간), 로그인 보안(`global/security`: SecurityConfig·JwtProvider·JwtAuthenticationFilter·LoginUser, httpOnly 쿠키·CORS credentials) |
+| 전이레 | 공통 기반 설정(`global/config`: AsyncConfig), LLM 설정(`ai/config`: AiConfig), 공용 ENUM(`global/enums`), 날씨(모의)·체감온도, 보온 계산 공통 모듈, 피드백, 성향(+ `ai/preference`), 프론트 틀 |
+| 정동화 | 회원, 설정, 장소·동선(카카오 지도, 요일·시간), 로그인 보안(`global/security`: SecurityConfig·JwtProvider·JwtAuthenticationFilter·LoginUser, Authorization 헤더·CORS) |
 | 강민주 | 옷장, 보관 위치, 착용 기록, 옷 사진 AI 분류(`ai/classify`), 공통 기반 일부(응답 형식·예외 처리·에러 코드·시간 자동 기록) |
 | 최수인 | 추천(+ `ai/recommend`), 챙길 것, 환절기 |
 
@@ -140,7 +140,7 @@
 
 ```
 src/main/java/com/mailook/
-├─ global/       response, exception, security, config, enums (공통 응답·예외·에러 코드, Security·JWT, MyBatis·Redis 설정, 공용 ENUM)
+├─ global/       response, exception, security, config, enums (공통 응답·예외·에러 코드, Security·JWT, 비동기 설정, 공용 ENUM)
 ├─ ai/           LLM 호출 모음: config(AiConfig, 기능별 ChatClient), classify(옷 분류), recommend(LLM 추천), preference(성향 요약·갱신 도구)
 ├─ user/         회원·설정
 ├─ place/        장소·동선 (RouteService)
@@ -175,7 +175,7 @@ src/main/java/com/mailook/
 
 - 주소는 모두 `/api`로 시작합니다.
 - 응답은 공통 틀로 감쌉니다: `{ success, data, error: { code, message } }`
-- 회원가입·로그인을 빼고 모두 로그인이 필요합니다. **JWT는 httpOnly 쿠키**로 주고받습니다. Refresh Token은 설계에만 있고 구현하지 않습니다(refresh 쿠키도 굽지 않음).
+- 회원가입·로그인을 빼고 모두 로그인이 필요합니다. **JWT는 쿠키가 아니라 `Authorization: Bearer {토큰}` 헤더**로 받습니다. 로그인 API는 토큰을 응답 `data`의 `accessToken`으로 돌려주고, `JwtAuthenticationFilter`는 이 헤더에서 토큰을 꺼냅니다. 쿠키를 굽지 않으므로 CORS에서 `Authorization` 헤더만 허용하면 되고 credentials는 켜지 않습니다. Refresh Token은 설계에만 있고 구현하지 않습니다.
 - **주소에 userId를 넣지 않습니다.** 토큰에서 꺼낸 로그인 사용자로 본인 데이터만 다룹니다.
 - 엔드포인트 목록과 응답 예시는 Notion "API 명세 초안"을 따릅니다.
 
@@ -193,8 +193,14 @@ src/main/java/com/mailook/
 - 1:1 테이블(user_settings, preferences)은 `user_id`가 PK 겸 FK입니다. 회원가입 트랜잭션에서 users insert 직후 같이 만듭니다.
 - 같은 옷 여러 벌은 한 벌에 한 줄이고 `same_group_id`로 묶습니다. 새 옷은 `<selectKey order="BEFORE">`로 id를 먼저 받아 `clothes_id`와 `same_group_id`에 같은 값을 넣습니다.
 - 착용 기록은 하루 1개입니다. 피드백 전에는 덮어쓰고, **피드백이 저장되면 잠깁니다**(수정·삭제 불가).
+- **추천은 새벽 배치가 미리 만듭니다.** 아침에 오늘 상황·몸 상태·오늘 동선이 바뀌면 홈이 안내를 띄우고, 사용자가 [새로 추천받기]를 누르면 그때 새 버전을 만듭니다(`POST /api/recommendations`).
 - 추천은 **버전으로 쌓습니다.** "다른 조합 보기"나 재추천은 새 줄이고, 이전 추천을 고치지 않습니다. 고르지 않은 버전도 지우지 않습니다(비선호 데이터). ‘바꾸기’(P1)로 자리를 바꾼 조합도 `recommendation_items`를 고치지 않고, 착용 기록(`wear_record_items`)에 실제 입은 옷으로 저장합니다.
+- **새벽 배치(05시대)**: 오늘 추천 생성(최수인). 기본값은 오늘 상황 = 그날 장소의 실내·야외 설정, 몸 상태 = `user_settings.unwell`, 동선 = 원래 일정입니다.
 - 환절기 카드(`season_alerts`, P1)는 전날 배치가 만들고 홈은 읽기만 합니다. ‘꺼냈어요’면 DONE + 그 옷 `storage_status = AVAILABLE`.
+- **날씨 모의 데이터**: `WeatherClient` 인터페이스 하나에 지금은 `MockWeatherClient`(랜덤)를 구현해 씁니다. 나중에 기상청 구현으로 바꿔도 다른 코드는 고치지 않게 합니다.
+    - 랜덤은 (날짜, 격자 nx·ny, 시각, 예보/관측) 값으로 시드를 정해, **같은 조건이면 늘 같은 값**이 나오게 합니다. 같은 날 다시 불러도 추천·피드백이 어긋나지 않고, 날마다 다른 날씨가 나옵니다.
+    - 기온은 그 달에 나올 만한 범위에서 고르고, 하루 안에서는 아침이 낮보다 춥게 만듭니다. 관측값은 예보값에서 조금(±2° 안) 다르게 만듭니다.
+    - 발표용으로 `weather.mock.scenario`(`RANDOM`/`COLD`/`HOT`/`RAINY`/`WINDY`) 설정을 두어 원하는 날씨를 바로 보여줄 수 있게 합니다. 기본은 `RANDOM`입니다.
 - 날씨 스냅샷(`weather_snapshots`)은 기상청 격자·시각 단위로 공유하고, **덮어쓰지도 지우지도 않습니다.** 같은 (nx, ny, forecast_at, kind)의 최신 값과 같으면 새 줄을 만들지 않고 재사용합니다.
 - 장소 주소는 동 단위까지만 저장하고, 위경도는 소수점 둘째 자리로 반올림해 저장합니다.
 
@@ -237,7 +243,7 @@ src/main/java/com/mailook/
 - 나에게 맞았던 온도 = 맞는 온도 − 4° × 선호 점수(더 따뜻하게 +1 / 이대로 0 / 더 가볍게 −1)
 - 이 피드백의 보정 = (기준 시점 체감 − 나에게 맞았던 온도) ÷ 적용 비율. 기준 시점 체감이 20° 미만이면 추위 보정, 이상이면 더위 보정으로 보냅니다.
 - 제외: 기준 시점 체감 18~22°(적용 비율 0.5 미만), unwell인 날, "오늘 안 나갔어요"인 날
-- 갱신: 같은 방향 3건 이상일 때만, 최근 10건의 중앙값으로, 한 번에 최대 1°까지 움직입니다.
+- 갱신: 같은 방향 3건 이상일 때만, 최근 10건의 중앙값으로, 한 번에 최대 1°까지 움직입니다. **피드백을 저장할 때 코드가 바로 계산해 반영합니다**(LLM을 거치지 않음). 그래서 내 성향 화면과 다음 추천에 바로 들어갑니다.
 - 가입 초기값: 추위 덜 탐 −4 / 비슷 0 / 더 탐 +4, 더위 덜 탐 +4 / 비슷 0 / 더 탐 −4
 - 가입 후 기본 설정에서 추위·더위 답을 고치면 `PreferenceService.resetOffset`으로 그 보정을 새 초기값으로 다시 맞추고 이력(USER)을 남깁니다.
 - 사용자가 직접 고친 값은 `*_locked = true`이고, AI가 덮어쓰지 않습니다. 바뀔 때마다 `preference_histories`에 남깁니다.
@@ -247,7 +253,12 @@ src/main/java/com/mailook/
 - LLM 호출 코드는 모두 `ai` 패키지에 둡니다. 기능별로 ChatClient를 나눕니다(옷 분류, 추천, 성향 요약).
 - **추천**: 코드가 후보 옷을 걸러 넘기고, LLM은 후보 안에서만 조합을 고릅니다. 후보 ID 밖의 응답은 거부합니다. LLM이 고른 조합은 `calcOutfitWarmth`로 검사하고, 맞지 않으면 이유를 붙여 2~3번 다시 요청하고, 그래도 안 되면 규칙 기반 추천으로 대신합니다.
 - LLM에는 장소 이름·동 단위 주소·머무는 시간, 옷의 상황 태그(외출복/출근용/운동복/격식 있는 자리, 없으면 일상), 반영 중인 유저 성향 문장을 맥락으로 넘깁니다. 상황 태그는 코드로 거르지 않습니다.
-- **피드백 저장**: 저장·관측 날씨 기록·편차 계산·갱신 필요 판단은 동기로 끝냅니다. LLM 성향 갱신(`updatePreference` Tool Calling)과 유저 성향 문장 정리는 비동기입니다.
+- **피드백 저장**: 저장·관측 날씨 기록·편차 계산·추위·더위 보정 갱신까지 요청 안에서 코드로 끝냅니다. 저장 응답은 LLM을 기다리지 않습니다.
+- **성향 정리(`@Async`)**: 피드백 저장이 끝난(커밋된) 뒤 Controller가 `PreferenceSummaryService.summarizeAsync(userId)`를 부릅니다. LLM이 최근 피드백을 보고 바람·습도·햇볕 민감도와 유저 성향 문장을 정리합니다(`updatePreference` Tool Calling). 추위·더위 보정 숫자는 LLM이 바꾸지 않습니다.
+    - 성공하면 `preferences.summarized_at`을 지금 시각으로 바꿉니다. 상태 컬럼은 따로 두지 않습니다. 예외는 `@Async` 메서드 안에서 `try`/`catch`로 잡아 로그만 남깁니다(밖으로 던지면 아무도 받지 못합니다). 실패하면 값이 그대로라 다음 피드백 때 다시 정리됩니다.
+    - `@Async` 메서드는 **다른 Bean**에 둡니다. 같은 클래스 안에서 부르면 비동기로 돌지 않습니다. `@EnableAsync`와 스레드 풀은 `global/config/AsyncConfig`에 둡니다.
+    - '오늘 안 나갔어요'(저장 안 함)와 몸 상태가 안 좋은 날(학습 제외) 피드백은 성향 정리를 부르지 않습니다.
+    - 완료 안내: `GET /api/preferences/me` 응답에 `summarizedAt`을 넣습니다. 프론트가 localStorage에 둔 마지막 값과 비교해, 더 최신이면 "성향 정리가 끝났어요" 토스트를 띄웁니다. 안내용 API·컬럼은 따로 만들지 않습니다.
 - 사용자가 남긴 말(memo)은 프롬프트에서 **지시가 아니라 데이터로만** 다룹니다.
 - 응답은 구조화 출력(정해진 JSON 형식)으로 받습니다. 챗봇처럼 자유 대화로 쓰지 않습니다.
 
