@@ -27,7 +27,7 @@ public class JwtProvider {
     private final SecretKey key;
     private final JwtEncoder encoder;
 
-    public JwtProvider(@Value("${JWT_SECRET}") String secret) {
+    public JwtProvider(@Value("${jwt.secret}") String secret) {
         byte[] bytes = Base64.getDecoder().decode(secret);
         if (bytes.length < 32)
             throw new IllegalArgumentException("JWT_SECRET must contain at least 32 random bytes encoded as Base64");
