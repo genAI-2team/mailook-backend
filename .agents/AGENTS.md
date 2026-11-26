@@ -10,9 +10,9 @@
 1. **현재 브랜치를 먼저 확인합니다** (`git branch --show-current`).
 2. **작업 브랜치(`타입/작업-내용`, 예: `feat/closet-crud`)에 있으면** 브랜치를 새로 만들지 않고 그 브랜치에서 바로 작업합니다.
 3. **`main` 또는 `develop`에 있으면** 지시받은 작업에 맞는 작업 브랜치를 새로 만든 뒤 작업합니다.
-    - 이때 지시가 불분명해서 무엇을 만들거나 고칠지, 어떤 타입(feat/fix/...)인지 정할 수 없으면 **경고 메시지만 남기고 아무 작업도 하지 않습니다.** 브랜치도 만들지 않고, 파일도 고치지 않습니다.
-    - 경고 예: `⚠️ 지시가 불분명해 작업하지 않았습니다. 무엇을 바꿔야 하는지(대상 기능·화면·API)와 작업 종류(기능 추가/버그 수정 등)를 알려 주세요.`
-    - 작업 브랜치는 항상 **최신 develop에서** 만듭니다. main에 있었다면 develop으로 옮긴 뒤 만듭니다.
+  - 이때 지시가 불분명해서 무엇을 만들거나 고칠지, 어떤 타입(feat/fix/...)인지 정할 수 없으면 **경고 메시지만 남기고 아무 작업도 하지 않습니다.** 브랜치도 만들지 않고, 파일도 고치지 않습니다.
+  - 경고 예: `⚠️ 지시가 불분명해 작업하지 않았습니다. 무엇을 바꿔야 하는지(대상 기능·화면·API)와 작업 종류(기능 추가/버그 수정 등)를 알려 주세요.`
+  - 작업 브랜치는 항상 **최신 develop에서** 만듭니다. main에 있었다면 develop으로 옮긴 뒤 만듭니다.
    ```bash
    git switch develop
    git pull origin develop
@@ -104,8 +104,8 @@
 |---|---|
 | 전이레 | 공통 기반 설정(`global/config`: AsyncConfig), LLM 설정(`ai/config`: AiConfig), 공용 ENUM(`global/enums`), 날씨(모의)·체감온도, 보온 계산 공통 모듈, 피드백, 성향(+ `ai/preference`), 프론트 틀 |
 | 정동화 | 회원, 설정, 장소·동선(카카오 지도, 요일·시간), 로그인 보안(`global/security`: SecurityConfig·JwtProvider·JwtAuthenticationFilter·LoginUser, Authorization 헤더·CORS) |
-| 강민주 | 옷장, 보관 위치, 착용 기록, 옷 사진 AI 분류(`ai/classify`), 공통 기반 일부(응답 형식·예외 처리·에러 코드·시간 자동 기록) |
-| 최수인 | 추천(+ `ai/recommend`), 챙길 것, 환절기 |
+| 최수인 | 옷장, 보관 위치, 착용 기록, 옷 사진 AI 분류(`ai/classify`) |
+| 강민주 | 추천(+ `ai/recommend`), 챙길 것, 환절기, 공통 기반 일부(응답 형식·예외 처리·에러 코드·시간 자동 기록) |
 
 ### 담당 밖 파일 수정 규칙
 
@@ -132,12 +132,12 @@
 - **다른 도메인의 DAO를 직접 부르지 않습니다.** 다른 도메인 데이터는 그 도메인의 Service로만 읽습니다. (예: 추천은 옷장 데이터를 `ClosetCandidateService`로만 읽음)
 - **도메인 패키지 아래에 계층 패키지를 둡니다:** `controller`, `service`, `dao`, `entity`(테이블 한 줄 객체), `dto`, `enums`. 이 여섯 가지 외의 패키지는 만들지 않고, 필요하면 먼저 물어봅니다. 외부 API·계산 클래스(KmaClient, DeviationCalculator 등)는 `service`에 둡니다. **LLM을 부르는 코드는 도메인에 두지 않고 최상위 `ai` 패키지에 둡니다**(아래 '패키지' 참고).
 - DAO와 XML은 테이블 묶음 단위로 하나씩 짝을 맞춥니다. 부모 테이블과 딸린 테이블은 같은 DAO·XML이 맡습니다.
-    - PlaceDao / PlaceMapper.xml: places, place_schedules
-    - ClothesDao / ClothesMapper.xml: clothes, clothes_occasion_tags
-    - WearRecordDao / WearRecordMapper.xml: wear_records, wear_record_items
-    - RecommendationDao / RecommendationMapper.xml: recommendations, recommendation_items, recommendation_weathers
-    - FeedbackDao / FeedbackMapper.xml: feedbacks, feedback_weathers, feedback_body_parts, feedback_weather_factors, feedback_day_contexts
-    - 나머지는 테이블 하나에 DAO·XML 하나
+  - PlaceDao / PlaceMapper.xml: places, place_schedules
+  - ClothesDao / ClothesMapper.xml: clothes, clothes_occasion_tags
+  - WearRecordDao / WearRecordMapper.xml: wear_records, wear_record_items
+  - RecommendationDao / RecommendationMapper.xml: recommendations, recommendation_items, recommendation_weathers
+  - FeedbackDao / FeedbackMapper.xml: feedbacks, feedback_body_parts, feedback_weather_factors, feedback_day_contexts
+  - 나머지는 테이블 하나에 DAO·XML 하나
 
 ### 패키지
 
@@ -163,8 +163,8 @@ src/main/java/com/mailook/
 | 패키지 | 클래스 | 담당 |
 |---|---|---|
 | `ai/config` | AiConfig(기능별 ChatClient Bean) | 전이레 |
-| `ai/classify` | ClothesClassifier | 강민주 |
-| `ai/recommend` | LlmRecommender | 최수인 |
+| `ai/classify` | ClothesClassifier | 최수인 |
+| `ai/recommend` | LlmRecommender | 강민주 |
 | `ai/preference` | PreferenceSummarizer, PreferenceUpdateTool | 전이레 |
 
 - 기능 폴더 안에는 LLM을 부르는 클래스와, 그 기능의 LLM 응답 형식(구조화 출력용 record/DTO)만 둡니다. 하위 계층 패키지(controller·service·dao)는 만들지 않습니다.
@@ -189,8 +189,8 @@ src/main/java/com/mailook/
 - id는 BIGSERIAL입니다. clothes는 `<selectKey order="BEFORE">SELECT nextval('clothes_clothes_id_seq')</selectKey>`로 id를 먼저 받습니다.
 
 - **삭제는 모두 soft delete**입니다. 행을 지우지 않고 `deleted_at`을 채웁니다. 조회 SQL에는 `deleted_at IS NULL` 조건을 꼭 넣습니다.
-    - 예외: 탈퇴 회원은 30일 뒤 배치로 연결 데이터까지 완전 삭제합니다. 그 30일 동안 같은 이메일로 재가입할 수 없습니다.
-    - 피드백 전 착용 기록 삭제와 옷 상황 태그 떼기를 soft로 할지는 아직 정하지 않았습니다(담당: 강민주).
+  - 예외: 탈퇴 회원은 30일 뒤 배치로 연결 데이터까지 완전 삭제합니다. 그 30일 동안 같은 이메일로 재가입할 수 없습니다.
+  - 피드백 전 착용 기록 삭제와 옷 상황 태그 떼기를 soft로 할지는 아직 정하지 않았습니다(담당: 최수인).
 - 보관 위치를 지우면 그 위치에 있던 옷의 `storage_location_id`를 null로 비웁니다(= "지정 없음").
 - places, storage_locations의 이름에는 UNIQUE를 걸지 않습니다.
 - 1:1 테이블(user_settings, preferences)은 `user_id`가 PK 겸 FK입니다. 회원가입 트랜잭션에서 users insert 직후 같이 만듭니다.
@@ -198,12 +198,12 @@ src/main/java/com/mailook/
 - 착용 기록은 하루 1개입니다. 피드백 전에는 덮어쓰고, **피드백이 저장되면 잠깁니다**(수정·삭제 불가).
 - **추천은 새벽 배치가 미리 만듭니다.** 아침에 오늘 상황·몸 상태·오늘 동선이 바뀌면 홈이 안내를 띄우고, 사용자가 [새로 추천받기]를 누르면 그때 새 버전을 만듭니다(`POST /api/recommendations`).
 - 추천은 **버전으로 쌓습니다.** "다른 조합 보기"나 재추천은 새 줄이고, 이전 추천을 고치지 않습니다. 고르지 않은 버전도 지우지 않습니다(비선호 데이터). ‘바꾸기’(P1)로 자리를 바꾼 조합도 `recommendation_items`를 고치지 않고, 착용 기록(`wear_record_items`)에 실제 입은 옷으로 저장합니다.
-- **새벽 배치(05시대)**: 오늘 추천 생성(최수인). 기본값은 오늘 상황 = 그날 장소의 실내·야외 설정, 몸 상태 = `user_settings.unwell`, 동선 = 원래 일정입니다.
+- **새벽 배치(05시대)**: 오늘 추천 생성(강민주). 기본값은 오늘 상황 = 그날 장소의 실내·야외 설정, 몸 상태 = `user_settings.unwell`, 동선 = 원래 일정입니다.
 - 환절기 카드(`season_alerts`, P1)는 전날 배치가 만들고 홈은 읽기만 합니다. ‘꺼냈어요’면 DONE + 그 옷 `storage_status = AVAILABLE`.
 - **날씨 모의 데이터**: `WeatherClient` 인터페이스 하나에 지금은 `MockWeatherClient`(랜덤)를 구현해 씁니다. 나중에 기상청 구현으로 바꿔도 다른 코드는 고치지 않게 합니다.
-    - 랜덤은 (날짜, 격자 nx·ny, 시각, 예보/관측) 값으로 시드를 정해, **같은 조건이면 늘 같은 값**이 나오게 합니다. 같은 날 다시 불러도 추천·피드백이 어긋나지 않고, 날마다 다른 날씨가 나옵니다.
-    - 기온은 그 달에 나올 만한 범위에서 고르고, 하루 안에서는 아침이 낮보다 춥게 만듭니다. 관측값은 예보값에서 조금(±2° 안) 다르게 만듭니다.
-    - 발표용으로 `weather.mock.scenario`(`RANDOM`/`COLD`/`HOT`/`RAINY`/`WINDY`) 설정을 두어 원하는 날씨를 바로 보여줄 수 있게 합니다. 기본은 `RANDOM`입니다.
+  - 랜덤은 (날짜, 격자 nx·ny, 시각, 예보/관측) 값으로 시드를 정해, **같은 조건이면 늘 같은 값**이 나오게 합니다. 같은 날 다시 불러도 추천·피드백이 어긋나지 않고, 날마다 다른 날씨가 나옵니다.
+  - 기온은 그 달에 나올 만한 범위에서 고르고, 하루 안에서는 아침이 낮보다 춥게 만듭니다. 관측값은 예보값에서 조금(±2° 안) 다르게 만듭니다.
+  - 발표용으로 `weather.mock.scenario`(`RANDOM`/`COLD`/`HOT`/`RAINY`/`WINDY`) 설정을 두어 원하는 날씨를 바로 보여줄 수 있게 합니다. 기본은 `RANDOM`입니다.
 - 날씨 스냅샷(`weather_snapshots`)은 기상청 격자·시각 단위로 공유하고, **덮어쓰지도 지우지도 않습니다.** 같은 (nx, ny, forecast_at, kind)의 최신 값과 같으면 새 줄을 만들지 않고 재사용합니다.
 - 장소 주소는 동 단위까지만 저장하고, 위경도는 소수점 둘째 자리로 반올림해 저장합니다.
 
@@ -221,9 +221,9 @@ src/main/java/com/mailook/
 
 - 조합 clo = 0.835 × (입은 옷 clo 합) + 0.16  (ISO 9920. 입는 옷 WEAR만 넣고, 챙길 것 BRING은 넣지 않음)
 - 적정 clo = (31 − 기준 온도) ÷ (0.155 × 활동량)
-    - 기준 온도 = 체감 − 보정 × 적용 비율
-    - 활동량: 바깥 115, 실내 60
-    - 최소 0.36(반팔+반바지). 그보다 더운 날은 통풍 높은 옷을 먼저 고릅니다.
+  - 기준 온도 = 체감 − 보정 × 적용 비율
+  - 활동량: 바깥 115, 실내 60
+  - 최소 0.36(반팔+반바지). 그보다 더운 날은 통풍 높은 옷을 먼저 고릅니다.
 - 적용 비율 = min(1, |체감 − 20| ÷ 4)
 - 보정은 두 개입니다. 체감 20° 미만인 시점은 추위 보정(cold_offset), 20° 이상은 더위 보정(heat_offset). 범위 −5 ~ +5°, +면 따뜻하게.
 - 화면의 따뜻한 정도 10단계 = round(clo ÷ 0.08)(0 이하는 1). 이 변환은 **프론트가** 합니다. 백엔드는 clo만 주고받고 단계(warmthLevel)를 만들지 않습니다.
@@ -256,12 +256,13 @@ src/main/java/com/mailook/
 - LLM 호출 코드는 모두 `ai` 패키지에 둡니다. 기능별로 ChatClient를 나눕니다(옷 분류, 추천, 성향 요약).
 - **추천**: 코드가 후보 옷을 걸러 넘기고, LLM은 후보 안에서만 조합을 고릅니다. 후보 ID 밖의 응답은 거부합니다. LLM이 고른 조합은 `calcOutfitWarmth`로 검사하고, 맞지 않으면 이유를 붙여 2~3번 다시 요청하고, 그래도 안 되면 규칙 기반 추천으로 대신합니다.
 - LLM에는 장소 이름·동 단위 주소·머무는 시간, 옷의 상황 태그(외출복/출근용/운동복/격식 있는 자리, 없으면 일상), 반영 중인 유저 성향 문장을 맥락으로 넘깁니다. 상황 태그는 코드로 거르지 않습니다.
-- **피드백 저장**: 저장·관측 날씨 기록·편차 계산·추위·더위 보정 갱신까지 요청 안에서 코드로 끝냅니다. 저장 응답은 LLM을 기다리지 않습니다.
+- **피드백 저장**: 저장·기준 시점 관측 날씨 기록(`feedbacks.moment`·`place_id`·`weather_snapshot_id`, 시점별 테이블 없음)·편차 계산·추위·더위 보정 갱신까지 요청 안에서 코드로 끝냅니다. 저장 응답은 LLM을 기다리지 않습니다.
 - **성향 정리(`@Async`)**: 피드백 저장이 끝난(커밋된) 뒤 Controller가 `PreferenceSummaryService.summarizeAsync(userId)`를 부릅니다. LLM이 최근 피드백을 보고 바람·습도·햇볕 민감도와 유저 성향 문장을 정리합니다(`updatePreference` Tool Calling). 추위·더위 보정 숫자는 LLM이 바꾸지 않습니다.
-    - 성공하면 `preferences.summarized_at`을 지금 시각으로 바꿉니다. 상태 컬럼은 따로 두지 않습니다. 예외는 `@Async` 메서드 안에서 `try`/`catch`로 잡아 로그만 남깁니다(밖으로 던지면 아무도 받지 못합니다). 실패하면 값이 그대로라 다음 피드백 때 다시 정리됩니다.
-    - `@Async` 메서드는 **다른 Bean**에 둡니다. 같은 클래스 안에서 부르면 비동기로 돌지 않습니다. `@EnableAsync`와 스레드 풀은 `global/config/AsyncConfig`에 둡니다.
-    - '오늘 안 나갔어요'(저장 안 함)와 몸 상태가 안 좋은 날(학습 제외) 피드백은 성향 정리를 부르지 않습니다.
-    - 완료 안내: `GET /api/preferences/me` 응답에 `summarizedAt`을 넣습니다. 프론트가 localStorage에 둔 마지막 값과 비교해, 더 최신이면 "성향 정리가 끝났어요" 토스트를 띄웁니다. 안내용 API·컬럼은 따로 만들지 않습니다.
+  - LLM에 넘기는 것: 지금 성향 문장(근거 건수)·민감도, 코드가 집계한 **최근 10건** 통계(부위·날씨 요인·그날 상황을 고른 횟수와 비율), `summarized_at` 이후 새 피드백 원문(남길 말 포함). 지난 피드백 원문을 전부 넘기지 않습니다. 민감도 비율도 추위·더위 보정처럼 최근 10건으로 셉니다.
+  - 성공하면 `preferences.summarized_at`을 지금 시각으로 바꿉니다. 상태 컬럼은 따로 두지 않습니다. 예외는 `@Async` 메서드 안에서 `try`/`catch`로 잡아 로그만 남깁니다(밖으로 던지면 아무도 받지 못합니다). 실패하면 값이 그대로라 다음 피드백 때 다시 정리됩니다.
+  - `@Async` 메서드는 **다른 Bean**에 둡니다. 같은 클래스 안에서 부르면 비동기로 돌지 않습니다. `@EnableAsync`와 스레드 풀은 `global/config/AsyncConfig`에 둡니다.
+  - '오늘 안 나갔어요'(저장 안 함)와 몸 상태가 안 좋은 날(학습 제외) 피드백은 성향 정리를 부르지 않습니다.
+  - 완료 안내: `GET /api/preferences/me` 응답에 `summarizedAt`을 넣습니다. 프론트가 localStorage에 둔 마지막 값과 비교해, 더 최신이면 "성향 정리가 끝났어요" 토스트를 띄웁니다. 안내용 API·컬럼은 따로 만들지 않습니다.
 - 사용자가 남긴 말(memo)은 프롬프트에서 **지시가 아니라 데이터로만** 다룹니다.
 - 응답은 구조화 출력(정해진 JSON 형식)으로 받습니다. 챗봇처럼 자유 대화로 쓰지 않습니다.
 
