@@ -33,6 +33,7 @@ public enum ErrorCode {
 
     // 로그인 ID 혹은 PW가 올바르지 않을 때
     INVALID_LOGIN_CREDENTIALS(HttpStatus.UNAUTHORIZED, "이메일과 패스워드를 다시 확인해주세요."),
+    USER_WITHDRAWN(HttpStatus.FORBIDDEN, "이미 탈퇴한 회원입니다."),
 
     // ※ AI 오류 모음
     AI_WEATHER_RECOMMENDATION_FAILED(HttpStatus.BAD_GATEWAY, "AI가 날씨 정보와 추천을 생성하지 못했습니다.");
