@@ -5,7 +5,7 @@ import com.mailook.weather.enums.WeatherKind;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-/** weather_snapshots 한 줄. */
+// weather_snapshots 한 줄.
 @Data
 @NoArgsConstructor
 public class WeatherSnapshot {

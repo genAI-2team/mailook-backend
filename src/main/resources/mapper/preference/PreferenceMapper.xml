@@ -1,4 +1,64 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
-<mapper namespace="PreferenceMapper">
+<mapper namespace="com.mailook.preference.dao.PreferenceDao">
+
+    <sql id="preferenceColumns">
+        user_id, cold_offset, heat_offset, wind_sensitivity, humid_sensitivity, sun_sensitivity,
+        cold_offset_locked, heat_offset_locked, wind_locked, humid_locked, sun_locked,
+        feedback_count, summarized_at, updated_at
+    </sql>
+
+    <select id="selectByUserId" resultType="Preference">
+        SELECT <include refid="preferenceColumns"/>
+        FROM preferences
+        WHERE user_id = #{userId}
+    </select>
+
+    <insert id="insert" parameterType="Preference">
+        INSERT INTO preferences (
+            user_id, cold_offset, heat_offset, wind_sensitivity, humid_sensitivity, sun_sensitivity,
+            cold_offset_locked, heat_offset_locked, wind_locked, humid_locked, sun_locked,
+            feedback_count, summarized_at
+        ) VALUES (
+            #{userId}, #{coldOffset}, #{heatOffset}, #{windSensitivity}, #{humidSensitivity}, #{sunSensitivity},
+            #{coldOffsetLocked}, #{heatOffsetLocked}, #{windLocked}, #{humidLocked}, #{sunLocked},
+            #{feedbackCount}, #{summarizedAt}
+        )
+    </insert>
+
+    <update id="updateOffsets" parameterType="Preference">
+        UPDATE preferences
+        SET cold_offset = #{coldOffset},
+            heat_offset = #{heatOffset},
+            feedback_count = #{feedbackCount},
+            updated_at = CURRENT_TIMESTAMP
+        WHERE user_id = #{userId}
+    </update>
+
+    <update id="updateSensitivities" parameterType="Preference">
+        UPDATE preferences
+        SET wind_sensitivity = #{windSensitivity},
+            humid_sensitivity = #{humidSensitivity},
+            sun_sensitivity = #{sunSensitivity},
+            summarized_at = #{summarizedAt},
+            updated_at = CURRENT_TIMESTAMP
+        WHERE user_id = #{userId}
+    </update>
+
+    <update id="updateByUser" parameterType="Preference">
+        UPDATE preferences
+        SET cold_offset = #{coldOffset},
+            heat_offset = #{heatOffset},
+            wind_sensitivity = #{windSensitivity},
+            humid_sensitivity = #{humidSensitivity},
+            sun_sensitivity = #{sunSensitivity},
+            cold_offset_locked = #{coldOffsetLocked},
+            heat_offset_locked = #{heatOffsetLocked},
+            wind_locked = #{windLocked},
+            humid_locked = #{humidLocked},
+            sun_locked = #{sunLocked},
+            updated_at = CURRENT_TIMESTAMP
+        WHERE user_id = #{userId}
+    </update>
+
 </mapper>

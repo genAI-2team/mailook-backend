@@ -1,4 +1,47 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
-<mapper namespace="PreferenceTraitMapper">
+<mapper namespace="com.mailook.preference.dao.PreferenceTraitDao">
+
+    <sql id="traitColumns">
+        preference_trait_id, user_id, content, evidence_count, rejected, created_at, updated_at
+    </sql>
+
+    <select id="selectByUser" resultType="PreferenceTrait">
+        SELECT <include refid="traitColumns"/>
+        FROM preference_traits
+        WHERE user_id = #{userId}
+        <if test="includeRejected == false">
+            AND rejected = false
+        </if>
+        ORDER BY evidence_count DESC
+    </select>
+
+    <select id="selectById" resultType="PreferenceTrait">
+        SELECT <include refid="traitColumns"/>
+        FROM preference_traits
+        WHERE preference_trait_id = #{preferenceTraitId}
+    </select>
+
+    <insert id="insert" parameterType="PreferenceTrait"
+            useGeneratedKeys="true" keyProperty="preferenceTraitId" keyColumn="preference_trait_id">
+        INSERT INTO preference_traits (user_id, content, evidence_count, rejected)
+        VALUES (#{userId}, #{content}, #{evidenceCount}, #{rejected})
+    </insert>
+
+    <update id="updateContent" parameterType="PreferenceTrait">
+        UPDATE preference_traits
+        SET content = #{content},
+            evidence_count = #{evidenceCount},
+            updated_at = CURRENT_TIMESTAMP
+        WHERE preference_trait_id = #{preferenceTraitId}
+    </update>
+
+    <update id="updateRejected">
+        UPDATE preference_traits
+        SET rejected = #{rejected},
+            updated_at = CURRENT_TIMESTAMP
+        WHERE preference_trait_id = #{preferenceTraitId}
+          AND user_id = #{userId}
+    </update>
+
 </mapper>
