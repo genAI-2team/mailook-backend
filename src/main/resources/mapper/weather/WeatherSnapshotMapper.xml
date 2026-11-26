@@ -1,4 +1,50 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
-<mapper namespace="WeatherSnapshotMapper">
+<mapper namespace="com.mailook.weather.dao.WeatherSnapshotDao">
+
+    <select id="selectLatest" resultType="WeatherSnapshot">
+        SELECT weather_snapshot_id, nx, ny, forecast_at, kind, base_at,
+               temperature, feels_like, wind_speed, humidity,
+               precipitation_type, sky, created_at
+        FROM weather_snapshots
+        WHERE nx = #{nx}
+          AND ny = #{ny}
+          AND forecast_at = #{forecastAt}
+          AND kind = #{kind}
+        ORDER BY base_at DESC
+        LIMIT 1
+    </select>
+
+    <insert id="insert" parameterType="WeatherSnapshot"
+            useGeneratedKeys="true" keyProperty="weatherSnapshotId" keyColumn="weather_snapshot_id">
+        INSERT INTO weather_snapshots (
+            nx, ny, forecast_at, kind, base_at,
+            temperature, feels_like, wind_speed, humidity,
+            precipitation_type, sky
+        ) VALUES (
+            #{nx}, #{ny}, #{forecastAt}, #{kind}, #{baseAt},
+            #{temperature}, #{feelsLike}, #{windSpeed}, #{humidity},
+            #{precipitationType}, #{sky}
+        )
+    </insert>
+
+    <select id="selectById" resultType="WeatherSnapshot">
+        SELECT weather_snapshot_id, nx, ny, forecast_at, kind, base_at,
+               temperature, feels_like, wind_speed, humidity,
+               precipitation_type, sky, created_at
+        FROM weather_snapshots
+        WHERE weather_snapshot_id = #{weatherSnapshotId}
+    </select>
+
+    <select id="selectByIds" resultType="WeatherSnapshot">
+        SELECT weather_snapshot_id, nx, ny, forecast_at, kind, base_at,
+               temperature, feels_like, wind_speed, humidity,
+               precipitation_type, sky, created_at
+        FROM weather_snapshots
+        WHERE weather_snapshot_id IN
+        <foreach collection="ids" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </select>
+
 </mapper>
