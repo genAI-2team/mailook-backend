@@ -2,13 +2,11 @@ package com.mailook.weather.entity;
 
 import java.time.LocalDateTime;
 import com.mailook.weather.enums.WeatherKind;
-import lombok.Getter;
+import lombok.Data;
 import lombok.NoArgsConstructor;
-import lombok.Setter;
 
 /** weather_snapshots 한 줄. */
-@Getter
-@Setter
+@Data
 @NoArgsConstructor
 public class WeatherSnapshot {
     private Long weatherSnapshotId;
