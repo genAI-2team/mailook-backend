@@ -1,4 +1,19 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
-<mapper namespace="PreferenceHistoryMapper">
+<mapper namespace="com.mailook.preference.dao.PreferenceHistoryDao">
+
+    <insert id="insert" parameterType="PreferenceHistory">
+        INSERT INTO preference_histories (user_id, field, before_value, after_value, changed_by, reason)
+        VALUES (#{userId}, #{field}, #{beforeValue}, #{afterValue}, #{changedBy}, #{reason})
+    </insert>
+
+    <select id="selectByUser" resultType="PreferenceHistory">
+        SELECT preference_history_id, user_id, field, before_value, after_value, changed_by, reason, created_at
+        FROM preference_histories
+        WHERE user_id = #{userId}
+        ORDER BY created_at DESC
+        LIMIT #{limit}
+        OFFSET #{offset}
+    </select>
+
 </mapper>

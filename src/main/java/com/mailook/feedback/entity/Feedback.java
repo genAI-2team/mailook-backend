@@ -11,7 +11,7 @@ import com.mailook.global.enums.WeatherMoment;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-/** feedbacks 한 줄. 부위·요인·상황 목록은 자식 테이블에서 채운다. */
+// feedbacks 한 줄. 부위·요인·상황 목록은 자식 테이블에서 채운다.
 @Data
 @NoArgsConstructor
 public class Feedback {

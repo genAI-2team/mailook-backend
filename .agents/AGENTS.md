@@ -95,14 +95,14 @@
 - Java 21, Spring Boot, Spring AI 1.1(OpenAI), Spring Security, JWT
 - 데이터 접근: **MyBatis (DAO 인터페이스 `@Mapper` + XML)**. DAO는 `@Mapper`를 붙인 인터페이스이고, 메서드 이름이 XML의 SQL id와 이어집니다. JPA를 쓰지 않습니다.
 - DB: PostgreSQL(Docker, 포트 5433). **Redis는 당장 쓰지 않습니다**(의존성·설정을 넣지 않음). pgvector는 P2에서만 씁니다.
-- 외부 API: 카카오 지도(좌표·주소). **날씨는 지금 모의 데이터(랜덤)로 돌립니다.** 기상청 단기·중기예보 연동은 나중에 같은 인터페이스로 바꿉니다.
+- 외부 API: 카카오 지도(좌표·주소), 기상청(단기예보·초단기실황, 환절기용 중기예보). **실제 코드는 기상청 API를 부르고**, 시연·테스트 때만 설정으로 모의 날씨(여름·겨울)로 바꿉니다.
 - 프론트는 Next.js(JavaScript)입니다. 로그인하면 JWT를 응답 본문으로 주고, 프론트가 localStorage에 저장해 요청마다 `Authorization: Bearer {토큰}` 헤더로 보냅니다.
 
 ## 3. 담당
 
 | 담당 | 도메인 |
 |---|---|
-| 전이레 | 공통 기반 설정(`global/config`: AsyncConfig), LLM 설정(`ai/config`: AiConfig), 공용 ENUM(`global/enums`), 날씨(모의)·체감온도, 보온 계산 공통 모듈, 피드백, 성향(+ `ai/preference`), 프론트 틀 |
+| 전이레 | 공통 기반 설정(`global/config`: AsyncConfig), LLM 설정(`ai/config`: AiConfig), 공용 ENUM(`global/enums`), 날씨(기상청 API·시연용 모의)·체감온도, 보온 계산 공통 모듈, 피드백, 성향(+ `ai/preference`), 프론트 틀 |
 | 정동화 | 회원, 설정, 장소·동선(카카오 지도, 요일·시간), 로그인 보안(`global/security`: SecurityConfig·JwtProvider·JwtAuthenticationFilter·LoginUser, Authorization 헤더·CORS) |
 | 최수인 | 옷장, 보관 위치, 착용 기록, 옷 사진 AI 분류(`ai/classify`) |
 | 강민주 | 추천(+ `ai/recommend`), 챙길 것, 환절기, 공통 기반 일부(응답 형식·예외 처리·에러 코드·시간 자동 기록) |
@@ -198,12 +198,12 @@ src/main/java/com/mailook/
 - 착용 기록은 하루 1개입니다. 피드백 전에는 덮어쓰고, **피드백이 저장되면 잠깁니다**(수정·삭제 불가).
 - **추천은 새벽 배치가 미리 만듭니다.** 아침에 오늘 상황·몸 상태·오늘 동선이 바뀌면 홈이 안내를 띄우고, 사용자가 [새로 추천받기]를 누르면 그때 새 버전을 만듭니다(`POST /api/recommendations`).
 - 추천은 **버전으로 쌓습니다.** "다른 조합 보기"나 재추천은 새 줄이고, 이전 추천을 고치지 않습니다. 고르지 않은 버전도 지우지 않습니다(비선호 데이터). ‘바꾸기’(P1)로 자리를 바꾼 조합도 `recommendation_items`를 고치지 않고, 착용 기록(`wear_record_items`)에 실제 입은 옷으로 저장합니다.
-- **새벽 배치(05시대)**: 오늘 추천 생성(강민주). 기본값은 오늘 상황 = 그날 장소의 실내·야외 설정, 몸 상태 = `user_settings.unwell`, 동선 = 원래 일정입니다.
+- **새벽 배치(05시대, 기상청 05시 발표 이후)**: 오늘 추천 생성(강민주). 기본값은 오늘 상황 = 그날 장소의 실내·야외 설정, 몸 상태 = `user_settings.unwell`, 동선 = 원래 일정입니다.
 - 환절기 카드(`season_alerts`, P1)는 전날 배치가 만들고 홈은 읽기만 합니다. ‘꺼냈어요’면 DONE + 그 옷 `storage_status = AVAILABLE`.
-- **날씨 모의 데이터**: `WeatherClient` 인터페이스 하나에 지금은 `MockWeatherClient`(랜덤)를 구현해 씁니다. 나중에 기상청 구현으로 바꿔도 다른 코드는 고치지 않게 합니다.
-  - 랜덤은 (날짜, 격자 nx·ny, 시각, 예보/관측) 값으로 시드를 정해, **같은 조건이면 늘 같은 값**이 나오게 합니다. 같은 날 다시 불러도 추천·피드백이 어긋나지 않고, 날마다 다른 날씨가 나옵니다.
-  - 기온은 그 달에 나올 만한 범위에서 고르고, 하루 안에서는 아침이 낮보다 춥게 만듭니다. 관측값은 예보값에서 조금(±2° 안) 다르게 만듭니다.
-  - 발표용으로 `weather.mock.scenario`(`RANDOM`/`COLD`/`HOT`/`RAINY`/`WINDY`) 설정을 두어 원하는 날씨를 바로 보여줄 수 있게 합니다. 기본은 `RANDOM`입니다.
+- **날씨 구현은 둘, 설정으로 전환**: `WeatherClient` 인터페이스에 `KmaWeatherClient`(기상청 API, 기본)와 `MockWeatherClient`(시연·테스트용)를 둡니다. `weather.client=kma|mock`으로 고르고, 다른 코드는 어느 쪽인지 모릅니다.
+  - **기상청**: 추천은 단기예보(예보, `FORECAST`), 피드백은 초단기실황(관측, `OBSERVED`), 환절기 카드는 중기예보를 씁니다. 키는 환경변수 `KMA_SERVICE_KEY`로 받습니다.
+  - **모의**: `weather.mock.scenario=WINTER|SUMMER`. WINTER는 아침 체감 영하·강한 바람, SUMMER는 체감 30° 안팎·높은 습도로 만들어 추천이 크게 달라지는 걸 보여줍니다. (날짜, 격자, 시각, 예보/관측)으로 시드를 정해 **같은 조건이면 늘 같은 값**이 나오게 하고, 하루 안에서는 아침이 낮보다 춥게, 관측값은 예보값에서 ±2° 안으로 조금 다르게 만듭니다.
+  - **스냅샷이 캐시입니다(Redis 없음)**: 날씨가 필요하면 먼저 (nx, ny, forecast_at, kind)의 최신 스냅샷을 찾고, 그 `base_at`이 지금 시점의 가장 최근 발표 시각(02·05·08·11·14·17·20·23시, 실황은 매시 정각)과 같으면 API를 부르지 않고 씁니다. 더 오래됐을 때만 API를 부릅니다.
 - 날씨 스냅샷(`weather_snapshots`)은 기상청 격자·시각 단위로 공유하고, **덮어쓰지도 지우지도 않습니다.** 같은 (nx, ny, forecast_at, kind)의 최신 값과 같으면 새 줄을 만들지 않고 재사용합니다.
 - 장소 주소는 동 단위까지만 저장하고, 위경도는 소수점 둘째 자리로 반올림해 저장합니다.
 
