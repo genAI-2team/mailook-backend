@@ -17,7 +17,9 @@ public class GlobalExceptionHandler {
         if (errorCode.getHttpStatus().is5xxServerError()) {
             log.error("비즈니스 처리 중 서버 오류 발생: {}", errorCode.name(), exception);
         }
-        return createErrorResponse(errorCode);
+        // 날짜가 포함된 메시지를 HTTP 403으로 반환
+        return ResponseEntity.status(errorCode.getHttpStatus())
+                .body(new ErrorResponse(exception.getMessage()));
     }
 
     // 예상하지 못한 예외는 원인을 로그에 남기고 공통 서버 오류(500번)로 응답합니다.
