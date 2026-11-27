@@ -5,6 +5,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -15,6 +16,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
+import com.mailook.closet.dto.ClothesBatchCreateRequest;
 import com.mailook.closet.dto.ClothesCreateRequest;
 import com.mailook.closet.dto.ClothesResponse;
 import com.mailook.closet.entity.Clothes;
@@ -82,12 +84,29 @@ public class ClothesController {
         clothes.setSameGroupId(clothesCreateRequest.getSameGroupId());
 
         clothesService.insert(clothes);
-        log.info("1111111111111111111111111111111111111111");
 
         ClothesResponse clothesResponse = new ClothesResponse();
-         log.info("333333333333333333333333333333333333");
+        
         clothesResponse.setStatus("옷 등록 성공");
         return clothesResponse;
+    }
+
+    // 같은 옷 여러 벌 등록
+    @PostMapping("/batch")
+    public ResponseEntity<ClothesResponse> createClothesBatch(
+            @RequestBody ClothesBatchCreateRequest request,
+            @AuthenticationPrincipal(expression = "claims['userId']") Number userId) {
+        if (userId == null) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "사용자 정보를 확인할 수 없습니다.");
+        }
+        clothesService.insertBatch(userId.longValue(), request);
+        return ResponseEntity.status(HttpStatus.CREATED).body(new ClothesResponse("옷 등록 성공", null));
+    }
+
+    @ExceptionHandler(ResponseStatusException.class)
+    public ResponseEntity<ClothesResponse> handleClothesError(ResponseStatusException exception) {
+        return ResponseEntity.status(exception.getStatusCode())
+                .body(new ClothesResponse("fail", exception.getReason()));
     }
 
     // 옷 수정
