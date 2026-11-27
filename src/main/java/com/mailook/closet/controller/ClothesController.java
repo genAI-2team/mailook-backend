@@ -2,6 +2,8 @@ package com.mailook.closet.controller;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -11,10 +13,12 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.server.ResponseStatusException;
 
 import com.mailook.closet.dto.ClothesCreateRequest;
 import com.mailook.closet.dto.ClothesResponse;
 import com.mailook.closet.entity.Clothes;
+import com.mailook.closet.service.ClothesService;
 
 import lombok.extern.slf4j.Slf4j;
 
@@ -22,6 +26,11 @@ import lombok.extern.slf4j.Slf4j;
 @RestController
 @RequestMapping("/api/clothes")
 public class ClothesController {
+    private final ClothesService clothesService;
+
+    public ClothesController(ClothesService clothesService){
+        this.clothesService = clothesService;
+    }
 
     // 옷 목록 조회
     @GetMapping
@@ -46,13 +55,38 @@ public class ClothesController {
 
     // 옷 등록
     @PostMapping
-    public ClothesResponse createClothes(@RequestBody ClothesCreateRequest clothesCreateRequest) {
-        // TODO: 등록 요청 DTO 정의 및 등록 서비스 연결
+    public ClothesResponse createClothes(@RequestBody ClothesCreateRequest clothesCreateRequest,
+                                         @AuthenticationPrincipal Jwt jwt) {
+        if (jwt == null || !(jwt.getClaim("userId") instanceof Number userId)) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "다시 로그인해 주세요.");
+        }
+         log.info("========================================");
         Clothes clothes = new Clothes();
-        //clothes.set;
+        clothes.setClothesId(clothesCreateRequest.getClothesId());
+        clothes.setUserId(userId.longValue());
 
-        //Clothes dbClothes = 
+        //파일 등록 이전에 URL 등록부터 처리
+        clothes.setImageUrl(clothesCreateRequest.getImageUrl());
+
+        clothes.setName(clothesCreateRequest.getName());
+        clothes.setCategory(clothesCreateRequest.getCategory());
+        clothes.setSubType(clothesCreateRequest.getSubType());
+        clothes.setMaterial(clothesCreateRequest.getMaterial());
+        clothes.setClo(clothesCreateRequest.getClo());
+        clothes.setBreathability(clothesCreateRequest.getBreathability());
+        clothes.setNeckCover(clothesCreateRequest.isNeckCover());
+        clothes.setStorageLocationId(clothesCreateRequest.getStorageLocationId());
+        clothes.setStorageStatus(clothesCreateRequest.getStorageStatus());
+
+        clothes.setUserEdited(clothesCreateRequest.isUserEdited());
+        clothes.setSameGroupId(clothesCreateRequest.getSameGroupId());
+
+        clothesService.insert(clothes);
+        log.info("1111111111111111111111111111111111111111");
+
         ClothesResponse clothesResponse = new ClothesResponse();
+         log.info("333333333333333333333333333333333333");
+        clothesResponse.setStatus("옷 등록 성공");
         return clothesResponse;
     }
 
