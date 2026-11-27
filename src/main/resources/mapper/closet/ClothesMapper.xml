@@ -1,4 +1,21 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
-<mapper namespace="ClothesMapper">
+<mapper namespace="com.mailook.closet.dao.ClothesDao">
+    <insert id="insert" parameterType="com.mailook.closet.entity.Clothes">
+        <selectKey keyProperty="clothesId" resultType="java.lang.Long" order="BEFORE">
+            SELECT nextval('clothes_clothes_id_seq')
+        </selectKey>
+
+        INSERT INTO clothes (
+            clothes_id, user_id, storage_location_id, name, category,
+            sub_type, material, clo, neck_cover, breathability,
+            storage_status, image_url, user_edited, same_group_id
+        ) VALUES (
+            #{clothesId}, #{userId}, #{storageLocationId}, #{name}, #{category},
+            #{subType}, #{material}, #{clo}, #{neckCover}, #{breathability},
+            COALESCE(#{storageStatus,jdbcType=VARCHAR}, 'AVAILABLE'),
+            #{imageUrl}, #{userEdited},
+            COALESCE(#{sameGroupId,jdbcType=BIGINT}, #{clothesId})
+        )
+    </insert>
 </mapper>
