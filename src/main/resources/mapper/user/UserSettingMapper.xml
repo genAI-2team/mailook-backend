@@ -1,4 +1,40 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
-<mapper namespace="UserSettingMapper">
+<mapper namespace="com.mailook.user.dao.UserSettingDao">
+
+    <sql id="userSettingColumns">
+        user_id, warmth_style, cold_sensitivity, heat_sensitivity,
+        unwell, unwell_asked_on, created_at, updated_at
+    </sql>
+
+    <select id="selectByUserId" resultType="UserSetting">
+        SELECT <include refid="userSettingColumns"/>
+        FROM user_settings
+        WHERE user_id = #{userId}
+    </select>
+
+    <insert id="insert" parameterType="UserSetting">
+        INSERT INTO user_settings (
+            user_id, warmth_style, cold_sensitivity, heat_sensitivity, unwell, unwell_asked_on
+        ) VALUES (
+            #{userId}, #{warmthStyle}, #{coldSensitivity}, #{heatSensitivity}, #{unwell}, #{unwellAskedOn}
+        )
+    </insert>
+
+    <update id="update" parameterType="UserSetting">
+        UPDATE user_settings
+        SET warmth_style = #{warmthStyle},
+            cold_sensitivity = #{coldSensitivity},
+            heat_sensitivity = #{heatSensitivity},
+            updated_at = CURRENT_TIMESTAMP
+        WHERE user_id = #{userId}
+    </update>
+
+    <update id="updateUnwell" parameterType="UserSetting">
+        UPDATE user_settings
+        SET unwell = #{unwell},
+            unwell_asked_on = #{unwellAskedOn},
+            updated_at = CURRENT_TIMESTAMP
+        WHERE user_id = #{userId}
+    </update>
 </mapper>

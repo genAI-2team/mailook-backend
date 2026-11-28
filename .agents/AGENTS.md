@@ -102,8 +102,8 @@
 
 | 담당 | 도메인 |
 |---|---|
-| 전이레 | 공통 기반 설정(`global/config`: AsyncConfig), LLM 설정(`ai/config`: AiConfig), 공용 ENUM(`global/enums`), 날씨(기상청 API·시연용 모의)·체감온도, 보온 계산 공통 모듈, 피드백, 성향(+ `ai/preference`), 프론트 틀 |
-| 정동화 | 회원, 설정, 장소·동선(카카오 지도, 요일·시간), 로그인 보안(`global/security`: SecurityConfig·JwtProvider·JwtAuthenticationFilter·LoginUser, Authorization 헤더·CORS) |
+| 전이레 | 공통 기반 설정(`global/config`: AsyncConfig), LLM 설정(`ai/config`: AiConfig), 공용 ENUM(`global/enums`), 날씨(기상청 API·시연용 모의)·체감온도, 보온 계산 공통 모듈, 기본 설정(`user_settings`: 보온 방식, 추위·더위 답, 몸 상태), 피드백, 성향(+ `ai/preference`), 프론트 틀 |
+| 정동화 | 회원, 장소·동선(카카오 지도, 요일·시간), 로그인 보안(`global/security`: SecurityConfig·JwtProvider·JwtAuthenticationFilter·LoginUser, Authorization 헤더·CORS) |
 | 최수인 | 옷장, 보관 위치, 착용 기록, 옷 사진 AI 분류(`ai/classify`) |
 | 강민주 | 추천(+ `ai/recommend`), 챙길 것, 환절기, 공통 기반 일부(응답 형식·예외 처리·에러 코드·시간 자동 기록) |
 
@@ -130,7 +130,7 @@
 ### 반드시 지킬 것
 
 - **다른 도메인의 DAO를 직접 부르지 않습니다.** 다른 도메인 데이터는 그 도메인의 Service로만 읽습니다. (예: 추천은 옷장 데이터를 `ClosetCandidateService`로만 읽음)
-- **도메인 패키지 아래에 계층 패키지를 둡니다:** `controller`, `service`, `dao`, `entity`(테이블 한 줄 객체), `dto`, `enums`. 이 여섯 가지 외의 패키지는 만들지 않고, 필요하면 먼저 물어봅니다. 외부 API·계산 클래스(KmaClient, DeviationCalculator 등)는 `service`에 둡니다. **LLM을 부르는 코드는 도메인에 두지 않고 최상위 `ai` 패키지에 둡니다**(아래 '패키지' 참고).
+- **도메인 패키지 아래에 계층 패키지를 둡니다:** `controller`, `service`, `dao`, `entity`(테이블 한 줄 객체), `dto`, `enums`. 이 여섯 가지 외의 패키지는 만들지 않고, 필요하면 먼저 물어봅니다. 외부 API·계산 클래스(KmaWeatherClient, DeviationCalculator 등)는 `service`에 둡니다. **LLM을 부르는 코드는 도메인에 두지 않고 최상위 `ai` 패키지에 둡니다**(아래 '패키지' 참고).
 - DAO와 XML은 테이블 묶음 단위로 하나씩 짝을 맞춥니다. 부모 테이블과 딸린 테이블은 같은 DAO·XML이 맡습니다.
   - PlaceDao / PlaceMapper.xml: places, place_schedules
   - ClothesDao / ClothesMapper.xml: clothes, clothes_occasion_tags

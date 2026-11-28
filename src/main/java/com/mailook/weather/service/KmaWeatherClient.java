@@ -1,4 +1,4 @@
 package com.mailook.weather.service;
 
-public class KmaClient {
+public class KmaWeatherClient {
 }
