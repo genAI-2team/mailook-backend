@@ -29,8 +29,13 @@ public class Loginservice {
         if (password == null || password.isEmpty())
             return "wrongPassword";
         Login login = loginDAO.selectByEmail(email);
-        if (login == null)
-            return "wrongEmail";
+        // [변경 전 — 2026-11-27] 미가입도 일반 인증 실패로 반환했다.
+        // if (login == null)
+        //     return "wrongEmail";
+        // [변경 후 — 2026-11-27] 조회 결과가 없는 경우에만 미가입 안내 예외를 전달한다.
+        if (login == null) {
+            throw new BusinessException(ErrorCode.USER_NOT_REGISTERED, null);
+        }
         if (!passwordEncoder.matches(password, login.getPassword()))
             return "wrongPassword";
         if ("WITHDRAWN".equalsIgnoreCase(login.getStatus())) {
@@ -50,11 +55,11 @@ public class Loginservice {
 
     public Login getLogin(String authenticatedEmail) {
         if (authenticatedEmail == null) {
-            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "로그인이 필요합니다.");
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "미 가입회원입니다. 계정을 등록 하시기 바랍니다..");
         }
         Login login = loginDAO.selectByEmail(authenticatedEmail);
         if (login == null || !"ACTIVE".equals(login.getStatus())) {
-            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "다시 로그인해 주세요.");
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "활동 계정이 아닙니다.");
         }
         return login;
     }

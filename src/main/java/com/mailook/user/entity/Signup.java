@@ -10,8 +10,8 @@ import lombok.ToString;
 public class Signup {
     private Long userId;
     private String email;
-    @JsonIgnore
-    @ToString.Exclude
+    @JsonIgnore // JSON 데이터를 주고받을 때 이 필드는 제외한다.
+    @ToString.Exclude // 객체를 문자열로 출력할 때 이 필드는 제외한다.
     private String password;
     private String nickname;
     private LocalDateTime locationAgreedAt;
