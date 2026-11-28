@@ -7,7 +7,7 @@ import org.apache.ibatis.annotations.Param;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 
-import com.mailook.closet.dto.ClothesBatchCreateRequest.Piece;
+import com.mailook.closet.dto.ClothesCreateRequest.Piece;
 import com.mailook.closet.entity.Clothes;
 
 @Mapper 

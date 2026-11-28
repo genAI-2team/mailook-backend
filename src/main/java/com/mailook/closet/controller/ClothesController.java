@@ -1,6 +1,7 @@
 package com.mailook.closet.controller;
 
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
@@ -11,20 +12,17 @@ import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
 
-import com.mailook.closet.dto.ClothesBatchCreateRequest;
 import com.mailook.closet.dto.ClothesCreateRequest;
 import com.mailook.closet.dto.ClothesResponse;
-import com.mailook.closet.entity.Clothes;
 import com.mailook.closet.service.ClothesService;
 
-import lombok.extern.slf4j.Slf4j;
 
-@Slf4j
 @RestController
 @RequestMapping("/api/clothes")
 public class ClothesController {
@@ -56,51 +54,16 @@ public class ClothesController {
     }
 
     // 옷 등록
-    @PostMapping
-    public ClothesResponse createClothes(@RequestBody ClothesCreateRequest clothesCreateRequest,
-                                         @AuthenticationPrincipal Jwt jwt) {
+    @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<ClothesResponse> createClothes(
+            @RequestPart(value = "image", required = false) MultipartFile image,
+            @RequestPart("data") ClothesCreateRequest request, @AuthenticationPrincipal Jwt jwt) {
         if (jwt == null || !(jwt.getClaim("userId") instanceof Number userId)) {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "다시 로그인해 주세요.");
         }
-         log.info("========================================");
-        Clothes clothes = new Clothes();
-        clothes.setClothesId(clothesCreateRequest.getClothesId());
-        clothes.setUserId(userId.longValue());
-
-        //파일 등록 이전에 URL 등록부터 처리
-        clothes.setImageUrl(clothesCreateRequest.getImageUrl());
-
-        clothes.setName(clothesCreateRequest.getName());
-        clothes.setCategory(clothesCreateRequest.getCategory());
-        clothes.setSubType(clothesCreateRequest.getSubType());
-        clothes.setMaterial(clothesCreateRequest.getMaterial());
-        clothes.setClo(clothesCreateRequest.getClo());
-        clothes.setBreathability(clothesCreateRequest.getBreathability());
-        clothes.setNeckCover(clothesCreateRequest.isNeckCover());
-        clothes.setStorageLocationId(clothesCreateRequest.getStorageLocationId());
-        clothes.setStorageStatus(clothesCreateRequest.getStorageStatus());
-
-        clothes.setUserEdited(clothesCreateRequest.isUserEdited());
-        clothes.setSameGroupId(clothesCreateRequest.getSameGroupId());
-
-        clothesService.insert(clothes);
-
-        ClothesResponse clothesResponse = new ClothesResponse();
-        
-        clothesResponse.setStatus("옷 등록 성공");
-        return clothesResponse;
-    }
-
-    // 같은 옷 여러 벌 등록
-    @PostMapping("/batch")
-    public ResponseEntity<ClothesResponse> createClothesBatch(
-            @RequestBody ClothesBatchCreateRequest request,
-            @AuthenticationPrincipal(expression = "claims['userId']") Number userId) {
-        if (userId == null) {
-            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "사용자 정보를 확인할 수 없습니다.");
-        }
-        clothesService.insertBatch(userId.longValue(), request);
-        return ResponseEntity.status(HttpStatus.CREATED).body(new ClothesResponse("옷 등록 성공", null));
+        clothesService.createClothes(userId.longValue(), request, image);
+        HttpStatus status = request.getPieces() == null ? HttpStatus.OK : HttpStatus.CREATED;
+        return ResponseEntity.status(status).body(new ClothesResponse("옷 등록 성공", null));
     }
 
     @ExceptionHandler(ResponseStatusException.class)
