@@ -1,4 +1,79 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
-<mapper namespace="RecommendationMapper">
+<mapper namespace="com.mailook.recommend.dao.RecommendationDao">
+    <resultMap id="recommendationMap" type="com.mailook.recommend.entity.Recommendation">
+        <id property="recommendationId" column="recommendation_id"/>
+        <result property="userId" column="user_id"/>
+        <result property="recommendDate" column="recommend_date"/>
+        <result property="situation" column="situation"/>
+        <result property="reason" column="reason"/>
+        <result property="unwell" column="unwell"/>
+        <result property="createdAt" column="created_at"/>
+    </resultMap>
+
+    <resultMap id="itemMap" type="com.mailook.recommend.entity.RecommendationItem">
+        <id property="recommendationId" column="recommendation_id"/>
+        <id property="clothesId" column="clothes_id"/>
+        <result property="role" column="role"/>
+        <result property="reason" column="reason"/>
+    </resultMap>
+
+    <select id="findLatestByUserIdAndRecommendDate" resultMap="recommendationMap">
+        SELECT recommendation_id, user_id, recommend_date, situation, reason, unwell, created_at
+        FROM recommendations
+        WHERE user_id = #{userId} AND recommend_date = #{recommendDate}
+        ORDER BY created_at DESC, recommendation_id DESC
+        LIMIT 1
+    </select>
+
+    <select id="findByIdAndUserId" resultMap="recommendationMap">
+        SELECT recommendation_id, user_id, recommend_date, situation, reason, unwell, created_at
+        FROM recommendations
+        WHERE recommendation_id = #{recommendationId} AND user_id = #{userId}
+    </select>
+
+    <!-- 재추천도 새 행으로 저장한다. -->
+    <insert id="insertRecommendation" useGeneratedKeys="true"
+            keyProperty="recommendationId" keyColumn="recommendation_id">
+        INSERT INTO recommendations (user_id, recommend_date, situation, reason, unwell)
+        VALUES (#{userId}, #{recommendDate}, #{situation}, #{reason}, #{unwell})
+    </insert>
+
+    <insert id="insertRecommendationItem">
+        INSERT INTO recommendation_items (recommendation_id, clothes_id, role, reason)
+        VALUES (#{recommendationId}, #{clothesId}, #{role}, #{reason})
+    </insert>
+
+    <select id="findItemsByRecommendationIdAndUserId" resultMap="itemMap">
+        SELECT i.recommendation_id, i.clothes_id, i.role, i.reason
+        FROM recommendation_items i
+        JOIN recommendations r ON r.recommendation_id = i.recommendation_id
+        WHERE i.recommendation_id = #{recommendationId} AND r.user_id = #{userId}
+        ORDER BY i.role, i.clothes_id
+    </select>
+    <resultMap id="weatherMap" type="com.mailook.recommend.entity.RecommendationWeather">
+        <id property="recommendationId" column="recommendation_id"/>
+        <id property="seq" column="seq"/>
+        <result property="moment" column="moment"/>
+        <result property="placeId" column="place_id"/>
+        <result property="weatherSnapshotId" column="weather_snapshot_id"/>
+        <result property="requiredClo" column="required_clo"/>
+        <result property="isDeciding" column="is_deciding"/>
+    </resultMap>
+
+    <insert id="insertRecommendationWeather">
+        INSERT INTO recommendation_weathers
+            (recommendation_id, seq, moment, place_id, weather_snapshot_id, required_clo, is_deciding)
+        VALUES
+            (#{recommendationId}, #{seq}, #{moment}, #{placeId}, #{weatherSnapshotId}, #{requiredClo}, #{isDeciding})
+    </insert>
+
+    <select id="findWeathersByRecommendationIdAndUserId" resultMap="weatherMap">
+        SELECT w.recommendation_id, w.seq, w.moment, w.place_id,
+               w.weather_snapshot_id, w.required_clo, w.is_deciding
+        FROM recommendation_weathers w
+        JOIN recommendations r ON r.recommendation_id = w.recommendation_id
+        WHERE w.recommendation_id = #{recommendationId} AND r.user_id = #{userId}
+        ORDER BY w.seq
+    </select>
 </mapper>
