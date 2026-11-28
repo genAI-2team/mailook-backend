@@ -50,12 +50,5 @@ public class ClothesCreateRequest {
     private Long sameGroupId;
 
     // 여러 벌 등록 시 첫 번째 벌을 포함한 각 벌의 보관 위치
-    private List<Piece> pieces;
-
-    /** 여러 벌 등록에서 옷 한 벌의 보관 위치를 담는다. 이름, 사진, 분류는 요청 전체에서 공유한다. */
-    @Data
-    public static class Piece {
-        // null이면 이 벌은 보관 위치를 지정하지 않는다.
-        private Long storageLocationId;
-    }
+    private List<ClothesPieceCreateRequest> pieces;
 }

@@ -5,13 +5,10 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
-import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
@@ -73,18 +70,18 @@ public class ClothesController {
     }
 
     // 옷 수정
-    @PutMapping("/{clothesId}")
-    public ResponseEntity<Void> updateClothes(@PathVariable("clothesId") Long clothesId) {
-        // TODO: 수정 요청 DTO 정의 및 수정 서비스 연결
-        return ResponseEntity.status(HttpStatus.NOT_IMPLEMENTED).build();
-    }
+    // @PutMapping("/{clothesId}")
+    // public ResponseEntity<Void> updateClothes(@PathVariable("clothesId") Long clothesId) {
+    //     // TODO: 수정 요청 DTO 정의 및 수정 서비스 연결
+    //     return ResponseEntity.status(HttpStatus.NOT_IMPLEMENTED).build();
+    // }
 
     // 옷 삭제
-    @DeleteMapping("/{clothesId}")
-    public ResponseEntity<Void> deleteClothes(@PathVariable("clothesId") Long clothesId) {
-        // TODO: 삭제 서비스 연결
-        return ResponseEntity.status(HttpStatus.NOT_IMPLEMENTED).build();
-    }
+    // @DeleteMapping("/{clothesId}")
+    // public ResponseEntity<Void> deleteClothes(@PathVariable("clothesId") Long clothesId) {
+    //     // TODO: 삭제 서비스 연결
+    //     return ResponseEntity.status(HttpStatus.NOT_IMPLEMENTED).build();
+    // }
 
     // 옷 복사
     @PostMapping("/{clothesId}/copy")
@@ -101,18 +98,18 @@ public class ClothesController {
     }
 
     // 옷 보관 정보 변경
-    @PatchMapping("/{clothesId}/storage")
-    public ResponseEntity<Void> updateClothesStorage(@PathVariable("clothesId") Long clothesId) {
-        // TODO: 보관 정보 요청 DTO 정의 및 변경 서비스 연결
-        return ResponseEntity.status(HttpStatus.NOT_IMPLEMENTED).build();
-    }
+    // @PatchMapping("/{clothesId}/storage")
+    // public ResponseEntity<Void> updateClothesStorage(@PathVariable("clothesId") Long clothesId) {
+    //     // TODO: 보관 정보 요청 DTO 정의 및 변경 서비스 연결
+    //     return ResponseEntity.status(HttpStatus.NOT_IMPLEMENTED).build();
+    // }
 
     // 옷 태그 수정
-    @PutMapping("/{clothesId}/tags")
-    public ResponseEntity<Void> updateClothesTags(@PathVariable("clothesId") Long clothesId) {
-        // TODO: 태그 요청 DTO 정의 및 수정 서비스 연결
-        return ResponseEntity.status(HttpStatus.NOT_IMPLEMENTED).build();
-    }
+    // @PutMapping("/{clothesId}/tags")
+    // public ResponseEntity<Void> updateClothesTags(@PathVariable("clothesId") Long clothesId) {
+    //     // TODO: 태그 요청 DTO 정의 및 수정 서비스 연결
+    //     return ResponseEntity.status(HttpStatus.NOT_IMPLEMENTED).build();
+    // }
 }
 
 // 반환을 뭘로 반환할 지는 나중에. <<  현재 반환이 전부 NOT_IMPLEMENTED (501 오류)로 반환함

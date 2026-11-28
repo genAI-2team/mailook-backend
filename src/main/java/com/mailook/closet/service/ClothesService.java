@@ -15,7 +15,7 @@ import org.springframework.web.server.ResponseStatusException;
 import com.mailook.closet.dao.ClothesDao;
 import com.mailook.closet.dao.StorageLocationDao;
 import com.mailook.closet.dto.ClothesCreateRequest;
-import com.mailook.closet.dto.ClothesCreateRequest.Piece;
+import com.mailook.closet.dto.ClothesPieceCreateRequest;
 import com.mailook.closet.entity.Clothes;
 
 import lombok.extern.slf4j.Slf4j;
@@ -53,7 +53,7 @@ public class ClothesService {
         clothes.setSameGroupId(request.getSameGroupId());
 
         // pieces가 없으면 한 벌을 등록한다. 여러 벌의 보관 위치는 insertBatch에서 검증한다.
-        List<Piece> pieces = request.getPieces();
+        List<ClothesPieceCreateRequest> pieces = request.getPieces();
         if (pieces == null) {
             validateStorageLocation(userId, clothes.getStorageLocationId());
         }
@@ -112,13 +112,13 @@ public class ClothesService {
     }
 
     /** 옷 정보를 수정하고 DAO가 반환한 변경 행 수를 돌려준다. */
-    public int update(Clothes clothes){
-        return clothesDao.update(clothes);
-    }
+    // public int update(Clothes clothes){
+    //     return clothesDao.update(clothes);
+    // }
 
 
     /** 같은 옷을 벌마다 한 행씩 저장하며, 모든 행이 사진 경로와 그룹 ID를 공유한다. */
-    private void insertBatch(Clothes clothes, List<Piece> pieces) {
+    private void insertBatch(Clothes clothes, List<ClothesPieceCreateRequest> pieces) {
         // 여러 벌 등록 요청에는 첫 번째 벌을 포함해 최소 두 벌이 필요하다.
         if (pieces.size() < 2) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "등록할 옷을 두 벌 이상 입력해 주세요.");
@@ -126,7 +126,7 @@ public class ClothesService {
 
         // 각 벌의 보관 위치는 로그인한 사용자에게 속한 위치여야 한다.
         // 벌 항목 자체는 필수이며, 위치 ID가 null이면 '지정 없음'이다.
-        for (Piece piece : pieces) {
+        for (ClothesPieceCreateRequest piece : pieces) {
             if (piece == null) {
                 throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "보관 위치를 확인해 주세요.");
             }
@@ -146,7 +146,7 @@ public class ClothesService {
 
     /** 옷 삭제를 DAO에 위임하고 변경 행 수를 반환한다. */
     // TODO: 옷 삭제에 소프트 삭제를 적용한다.
-    public int delete(Long clothesId){
-        return clothesDao.delete(clothesId);
-    }
+    // public int delete(Long clothesId){
+    //     return clothesDao.delete(clothesId);
+    // }
 }
