@@ -1,7 +1,5 @@
 package com.mailook.recommend.entity;
 
-import java.math.BigDecimal;
-
 import com.mailook.global.enums.WeatherMoment;
 
 import lombok.Getter;
@@ -32,13 +30,9 @@ public class RecommendationWeather {
     private Long weatherSnapshotId;
 
     // 해당 시점에 필요한 조합 보온력
-    private BigDecimal requiredClo;
-    // numeric(3,2) 전체 숫자 3자리 중 소수점 아래 2자리를 저장한다는 뜻입니다.
-    /*
-     * 1.25 정상 저장
-     * 1.256 소수 둘째 자리로 반올림되어 1.26 저장
-     * 10.00 범위를 초과하여 오류
-     */
+    private double requiredClo;
+    // DB에서는 numeric(3,2)로 소수 둘째 자리까지 저장한다.
+    // 저장 시 1.256은 1.26으로 반올림되며, 결과가 -9.99~9.99 범위를 벗어나면 오류가 발생한다.
 
     // 옷 선택의 기준 시점 여부 (requiredClo가 가장 높은 시점)
     private boolean isDeciding;
