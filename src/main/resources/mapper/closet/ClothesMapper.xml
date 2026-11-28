@@ -15,7 +15,32 @@
             #{subType}, #{material}, #{clo}, #{neckCover}, #{breathability},
             COALESCE(#{storageStatus,jdbcType=VARCHAR}, 'AVAILABLE'),
             #{imageUrl}, #{userEdited},
-            COALESCE(#{sameGroupId,jdbcType=BIGINT}, #{clothesId})
+            COALESCE(#{sameGroupId,jdbcType=BIGINT}, CAST(#{clothesId} AS BIGINT))
         )
+    </insert>
+
+    <insert id="insertBatch">
+        <selectKey keyProperty="clothes.sameGroupId" resultType="java.lang.Long" order="BEFORE">
+            SELECT nextval('clothes_clothes_id_seq')
+        </selectKey>
+
+        INSERT INTO clothes (
+            clothes_id, user_id, storage_location_id, name, category,
+            sub_type, material, clo, neck_cover, breathability,
+            storage_status, image_url, user_edited, same_group_id
+        ) VALUES
+        <foreach collection="pieces" item="piece" index="index" separator=",">
+            (
+                <choose>
+                    <when test="index == 0">#{clothes.sameGroupId}</when>
+                    <otherwise>nextval('clothes_clothes_id_seq')</otherwise>
+                </choose>,
+                #{clothes.userId}, #{piece.storageLocationId,jdbcType=BIGINT},
+                #{clothes.name}, #{clothes.category}, #{clothes.subType}, #{clothes.material},
+                #{clothes.clo}, #{clothes.neckCover}, #{clothes.breathability},
+                COALESCE(#{clothes.storageStatus,jdbcType=VARCHAR}, 'AVAILABLE'),
+                #{clothes.imageUrl}, #{clothes.userEdited}, #{clothes.sameGroupId}
+            )
+        </foreach>
     </insert>
 </mapper>

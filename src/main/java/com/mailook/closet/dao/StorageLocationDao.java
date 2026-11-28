@@ -13,8 +13,7 @@ import com.mailook.closet.entity.StorageLocation;
 public interface StorageLocationDao {
 
     // 사용자의 새 보관 위치를 등록하고 등록된 행 수를 반환한다.
-    int insert(@Param("userId") Long userId,
-            @Param("name") String name);
+    int insert(StorageLocation location);
 
     // 삭제되지 않은 사용자의 보관 위치를 등록 순서로 조회한다.
     List<StorageLocation> findAllByUserId(@Param("userId") Long userId);

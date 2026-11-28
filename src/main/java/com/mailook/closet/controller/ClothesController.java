@@ -1,28 +1,25 @@
 package com.mailook.closet.controller;
 
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
-import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
 
 import com.mailook.closet.dto.ClothesCreateRequest;
 import com.mailook.closet.dto.ClothesResponse;
-import com.mailook.closet.entity.Clothes;
 import com.mailook.closet.service.ClothesService;
 
-import lombok.extern.slf4j.Slf4j;
 
-@Slf4j
 @RestController
 @RequestMapping("/api/clothes")
 public class ClothesController {
@@ -54,55 +51,37 @@ public class ClothesController {
     }
 
     // 옷 등록
-    @PostMapping
-    public ClothesResponse createClothes(@RequestBody ClothesCreateRequest clothesCreateRequest,
-                                         @AuthenticationPrincipal Jwt jwt) {
+    @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<ClothesResponse> createClothes(
+            @RequestPart(value = "image", required = false) MultipartFile image,
+            @RequestPart("data") ClothesCreateRequest request, @AuthenticationPrincipal Jwt jwt) {
         if (jwt == null || !(jwt.getClaim("userId") instanceof Number userId)) {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "다시 로그인해 주세요.");
         }
-         log.info("========================================");
-        Clothes clothes = new Clothes();
-        clothes.setClothesId(clothesCreateRequest.getClothesId());
-        clothes.setUserId(userId.longValue());
+        clothesService.createClothes(userId.longValue(), request, image);
+        HttpStatus status = request.getPieces() == null ? HttpStatus.OK : HttpStatus.CREATED;
+        return ResponseEntity.status(status).body(new ClothesResponse("옷 등록 성공", null));
+    }
 
-        //파일 등록 이전에 URL 등록부터 처리
-        clothes.setImageUrl(clothesCreateRequest.getImageUrl());
-
-        clothes.setName(clothesCreateRequest.getName());
-        clothes.setCategory(clothesCreateRequest.getCategory());
-        clothes.setSubType(clothesCreateRequest.getSubType());
-        clothes.setMaterial(clothesCreateRequest.getMaterial());
-        clothes.setClo(clothesCreateRequest.getClo());
-        clothes.setBreathability(clothesCreateRequest.getBreathability());
-        clothes.setNeckCover(clothesCreateRequest.isNeckCover());
-        clothes.setStorageLocationId(clothesCreateRequest.getStorageLocationId());
-        clothes.setStorageStatus(clothesCreateRequest.getStorageStatus());
-
-        clothes.setUserEdited(clothesCreateRequest.isUserEdited());
-        clothes.setSameGroupId(clothesCreateRequest.getSameGroupId());
-
-        clothesService.insert(clothes);
-        log.info("1111111111111111111111111111111111111111");
-
-        ClothesResponse clothesResponse = new ClothesResponse();
-         log.info("333333333333333333333333333333333333");
-        clothesResponse.setStatus("옷 등록 성공");
-        return clothesResponse;
+    @ExceptionHandler(ResponseStatusException.class)
+    public ResponseEntity<ClothesResponse> handleClothesError(ResponseStatusException exception) {
+        return ResponseEntity.status(exception.getStatusCode())
+                .body(new ClothesResponse("fail", exception.getReason()));
     }
 
     // 옷 수정
-    @PutMapping("/{clothesId}")
-    public ResponseEntity<Void> updateClothes(@PathVariable("clothesId") Long clothesId) {
-        // TODO: 수정 요청 DTO 정의 및 수정 서비스 연결
-        return ResponseEntity.status(HttpStatus.NOT_IMPLEMENTED).build();
-    }
+    // @PutMapping("/{clothesId}")
+    // public ResponseEntity<Void> updateClothes(@PathVariable("clothesId") Long clothesId) {
+    //     // TODO: 수정 요청 DTO 정의 및 수정 서비스 연결
+    //     return ResponseEntity.status(HttpStatus.NOT_IMPLEMENTED).build();
+    // }
 
     // 옷 삭제
-    @DeleteMapping("/{clothesId}")
-    public ResponseEntity<Void> deleteClothes(@PathVariable("clothesId") Long clothesId) {
-        // TODO: 삭제 서비스 연결
-        return ResponseEntity.status(HttpStatus.NOT_IMPLEMENTED).build();
-    }
+    // @DeleteMapping("/{clothesId}")
+    // public ResponseEntity<Void> deleteClothes(@PathVariable("clothesId") Long clothesId) {
+    //     // TODO: 삭제 서비스 연결
+    //     return ResponseEntity.status(HttpStatus.NOT_IMPLEMENTED).build();
+    // }
 
     // 옷 복사
     @PostMapping("/{clothesId}/copy")
@@ -119,18 +98,18 @@ public class ClothesController {
     }
 
     // 옷 보관 정보 변경
-    @PatchMapping("/{clothesId}/storage")
-    public ResponseEntity<Void> updateClothesStorage(@PathVariable("clothesId") Long clothesId) {
-        // TODO: 보관 정보 요청 DTO 정의 및 변경 서비스 연결
-        return ResponseEntity.status(HttpStatus.NOT_IMPLEMENTED).build();
-    }
+    // @PatchMapping("/{clothesId}/storage")
+    // public ResponseEntity<Void> updateClothesStorage(@PathVariable("clothesId") Long clothesId) {
+    //     // TODO: 보관 정보 요청 DTO 정의 및 변경 서비스 연결
+    //     return ResponseEntity.status(HttpStatus.NOT_IMPLEMENTED).build();
+    // }
 
     // 옷 태그 수정
-    @PutMapping("/{clothesId}/tags")
-    public ResponseEntity<Void> updateClothesTags(@PathVariable("clothesId") Long clothesId) {
-        // TODO: 태그 요청 DTO 정의 및 수정 서비스 연결
-        return ResponseEntity.status(HttpStatus.NOT_IMPLEMENTED).build();
-    }
+    // @PutMapping("/{clothesId}/tags")
+    // public ResponseEntity<Void> updateClothesTags(@PathVariable("clothesId") Long clothesId) {
+    //     // TODO: 태그 요청 DTO 정의 및 수정 서비스 연결
+    //     return ResponseEntity.status(HttpStatus.NOT_IMPLEMENTED).build();
+    // }
 }
 
 // 반환을 뭘로 반환할 지는 나중에. <<  현재 반환이 전부 NOT_IMPLEMENTED (501 오류)로 반환함
