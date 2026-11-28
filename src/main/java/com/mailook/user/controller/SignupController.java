@@ -15,18 +15,30 @@ import com.mailook.user.dto.SignupRequest;
 import com.mailook.user.dto.SignupReponse;
 import com.mailook.user.entity.Signup;
 import com.mailook.user.service.SignupService;
+import com.mailook.global.security.JwtProvider;
+import com.mailook.user.entity.Login;
+
+import lombok.extern.slf4j.Slf4j;
 
 @RestController
-@RequestMapping("/api/maiLookLogin")
+// [변경 전 — 2026-11-27] @RequestMapping("/api/maiLookLogin")
+// [변경 후 — 2026-11-27] 메소드의 /signup과 합쳐 /api/auth/signup으로 등록한다.
+@RequestMapping("/api/auth")
+@Slf4j 
 public class SignupController {
     private final SignupService signupService;
+    private final JwtProvider jwtProvider;
 
-    public SignupController(SignupService signupService) {
+    // [변경 전 — 2026-11-27] public SignupController(SignupService signupService) {
+    // [변경 후 — 2026-11-27] 가입 완료 회원의 인증 토큰도 발급한다.
+    public SignupController(SignupService signupService, JwtProvider jwtProvider) {
         this.signupService = signupService;
+        this.jwtProvider = jwtProvider;
     }
 
-    /** 기존 Next.js insert 중계 경로와 공개 회원가입 경로를 사용한다. */
-    @PostMapping("/insert")
+    // [변경 전 — 2026-11-27] @PostMapping("/insert")
+    // [변경 후 — 2026-11-27] POST /api/auth/signup. 내부 insert 메소드와 등록 로직은 유지한다.
+    @PostMapping("/signup")
     public ResponseEntity<SignupReponse> insert(@RequestBody SignupRequest request) {
         Signup signup = new Signup();
         signup.setEmail(request.getEmail());
@@ -46,6 +58,12 @@ public class SignupController {
         response.setUserId(signup.getUserId());
         response.setEmail(signup.getEmail());
         response.setNickname(signup.getNickname());
+        // [변경 전 — 2026-11-27] 회원 정보만 반환하고 기본 정보 화면용 인증은 발급하지 않았다.
+        // [변경 후 — 2026-11-27] DB 등록 성공 후 생성된 userId/email로 토큰을 발급한다.
+        Login registeredUser = new Login();
+        registeredUser.setUserId(signup.getUserId());
+        registeredUser.setEmail(signup.getEmail());
+        response.setAccessToken(jwtProvider.createToken(registeredUser));
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 

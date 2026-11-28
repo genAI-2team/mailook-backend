@@ -7,7 +7,9 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.server.ResponseStatusException;
 
-@RestControllerAdvice(assignableTypes = loginController.class)
+// [변경 전 — 2026-11-26] @RestControllerAdvice(assignableTypes = loginController.class)
+// [변경 후 — 2026-11-26] 이름을 변경한 로그인 Controller에 예외 처리를 연결한다.
+@RestControllerAdvice(assignableTypes = LoginController.class)
 public class LoginExceptionHandler {
     @ExceptionHandler(ResponseStatusException.class)
     public ResponseEntity<?> handle(ResponseStatusException error) {

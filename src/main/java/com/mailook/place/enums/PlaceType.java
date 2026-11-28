@@ -1,4 +1,2 @@
 package com.mailook.place.enums;
-
-public enum PlaceType {
-}
+public enum PlaceType { HOME, ACTIVITY }

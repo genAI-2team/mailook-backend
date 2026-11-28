@@ -11,7 +11,8 @@ public enum ErrorCode {
 
     // ※ 기본 오류
     INVALID_INPUT_VALUE(HttpStatus.BAD_REQUEST, "입력값이 올바르지 않습니다."),
-    UNAUTHORIZED(HttpStatus.UNAUTHORIZED, "로그인이 필요합니다."),
+    // 11월 27일 신규 메세지 추가
+    UNAUTHORIZED(HttpStatus.UNAUTHORIZED, "미 가입회원입니다. 계정을 등록 하시기 바랍니다.."),
     ACCESS_DENIED(HttpStatus.FORBIDDEN, "접근 권한이 없습니다."),
     RESOURCE_NOT_FOUND(HttpStatus.NOT_FOUND, "요청한 리소스를 찾을 수 없습니다."),
     METHOD_NOT_ALLOWED(HttpStatus.METHOD_NOT_ALLOWED, "지원하지 않는 HTTP 메서드입니다."),
@@ -34,6 +35,9 @@ public enum ErrorCode {
     // 로그인 ID 혹은 PW가 올바르지 않을 때
     INVALID_LOGIN_CREDENTIALS(HttpStatus.UNAUTHORIZED, "이메일과 패스워드를 다시 확인해주세요."),
     USER_WITHDRAWN(HttpStatus.FORBIDDEN, "이미 탈퇴한 회원입니다."),
+    // [변경 전 — 2026-11-27] 미가입 전용 오류 코드가 없었다.
+    // [변경 후 — 2026-11-27] 이메일에 해당하는 회원이 없을 때 반환한다.
+    USER_NOT_REGISTERED(HttpStatus.UNAUTHORIZED, "미 가입회원입니다. 계정을 등록 하시기 바랍니다."),
 
     // ※ AI 오류 모음
     AI_WEATHER_RECOMMENDATION_FAILED(HttpStatus.BAD_GATEWAY, "AI가 날씨 정보와 추천을 생성하지 못했습니다.");

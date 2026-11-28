@@ -6,7 +6,15 @@
     </select>
     <insert id="insert" parameterType="com.mailook.user.entity.Signup"
             useGeneratedKeys="true" keyProperty="userId" keyColumn="user_id">
+        <!-- [변경 전 — 2026-11-28] 이메일이 빈 값이어도 INSERT할 수 있었다.
         INSERT INTO public.users (email, password, nickname, status, location_agreed_at)
         VALUES (#{email}, #{password}, #{nickname}, 'ACTIVE', #{locationAgreedAt})
+        -->
+        <!-- [변경 후 — 2026-11-28] NULL·빈 문자열·공백 문자뿐인 이메일은 등록하지 않는다.
+             조건 불일치 시 INSERT 결과는 0이며 기존 서비스의 등록 결과 검사에서 실패 처리한다. -->
+        INSERT INTO public.users (email, password, nickname, status, location_agreed_at)
+        SELECT BTRIM(#{email,jdbcType=VARCHAR}), #{password}, #{nickname}, 'ACTIVE', #{locationAgreedAt}
+        WHERE #{email,jdbcType=VARCHAR} IS NOT NULL
+          AND #{email,jdbcType=VARCHAR} !~ '^[[:space:]]*$'
     </insert>
 </mapper>
