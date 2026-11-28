@@ -35,5 +35,5 @@ public class RecommendationWeather {
     // 저장 시 1.256은 1.26으로 반올림되며, 결과가 -9.99~9.99 범위를 벗어나면 오류가 발생한다.
 
     // 옷 선택의 기준 시점 여부 (requiredClo가 가장 높은 시점)
-    private boolean isDeciding;
+    private boolean deciding;
 }

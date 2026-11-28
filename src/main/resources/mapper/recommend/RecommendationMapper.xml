@@ -58,14 +58,14 @@
         <result property="placeId" column="place_id"/>
         <result property="weatherSnapshotId" column="weather_snapshot_id"/>
         <result property="requiredClo" column="required_clo"/>
-        <result property="isDeciding" column="is_deciding"/>
+        <result property="deciding" column="is_deciding"/>
     </resultMap>
 
     <insert id="insertRecommendationWeather">
         INSERT INTO recommendation_weathers
             (recommendation_id, seq, moment, place_id, weather_snapshot_id, required_clo, is_deciding)
         VALUES
-            (#{recommendationId}, #{seq}, #{moment}, #{placeId}, #{weatherSnapshotId}, #{requiredClo}, #{isDeciding})
+            (#{recommendationId}, #{seq}, #{moment}, #{placeId}, #{weatherSnapshotId}, #{requiredClo}, #{deciding})
     </insert>
 
     <select id="findWeathersByRecommendationIdAndUserId" resultMap="weatherMap">
