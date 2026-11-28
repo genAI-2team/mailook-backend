@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
@@ -23,6 +24,8 @@ import org.springframework.web.server.ResponseStatusException;
 import com.mailook.closet.dto.ClothesCreateRequest;
 import com.mailook.closet.dto.ClothesListItem;
 import com.mailook.closet.dto.ClothesResponse;
+import com.mailook.closet.enums.ClothesCategory;
+import com.mailook.closet.enums.StorageStatus;
 import com.mailook.closet.service.ClothesService;
 
 
@@ -37,11 +40,14 @@ public class ClothesController {
 
     // 옷 목록 조회
     @GetMapping
-    public List<ClothesListItem> getClothes(@AuthenticationPrincipal Jwt jwt) {
+    public List<ClothesListItem> getClothes(
+            @RequestParam(name = "category", required = false) ClothesCategory category,
+            @RequestParam(name = "storageStatus", required = false) StorageStatus storageStatus,
+            @AuthenticationPrincipal Jwt jwt) {
         if (jwt == null || !(jwt.getClaim("userId") instanceof Number userId)) {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "다시 로그인해 주세요.");
         }
-        return clothesService.findAll(userId.longValue());
+        return clothesService.findAll(userId.longValue(), category, storageStatus);
     }
 
     @GetMapping("/{clothesId}/photo")

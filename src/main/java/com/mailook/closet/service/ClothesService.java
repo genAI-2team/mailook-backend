@@ -21,6 +21,8 @@ import com.mailook.closet.dto.ClothesCreateRequest;
 import com.mailook.closet.dto.ClothesListItem;
 import com.mailook.closet.dto.ClothesPieceCreateRequest;
 import com.mailook.closet.entity.Clothes;
+import com.mailook.closet.enums.ClothesCategory;
+import com.mailook.closet.enums.StorageStatus;
 
 import lombok.extern.slf4j.Slf4j;
 
@@ -38,8 +40,8 @@ public class ClothesService {
         this.storageLocationDao = storageLocationDao;
     }
 
-    public List<ClothesListItem> findAll(long userId) {
-        return clothesDao.findAllByUserId(userId);
+    public List<ClothesListItem> findAll(long userId, ClothesCategory category, StorageStatus storageStatus) {
+        return clothesDao.findAllByUserId(userId, category, storageStatus);
     }
 
     public Resource findPhoto(long userId, long clothesId) {

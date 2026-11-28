@@ -3,24 +3,40 @@
 <mapper namespace="com.mailook.closet.dao.ClothesDao">
     <resultMap id="clothesListItem" type="com.mailook.closet.dto.ClothesListItem">
         <constructor>
-            <idArg column="clothes_id" javaType="java.lang.Long"/>
-            <arg column="name" javaType="java.lang.String"/>
-            <arg column="category" javaType="java.lang.String"/>
-            <arg column="clo" javaType="java.math.BigDecimal"/>
-            <arg column="location" javaType="java.lang.String"/>
-            <arg column="stored" javaType="_boolean"/>
-            <arg column="has_photo" javaType="_boolean"/>
+            <idArg name="clothesId" column="clothes_id" javaType="java.lang.Long"/>
+            <arg name="name" column="name" javaType="java.lang.String"/>
+            <arg name="category" column="category" javaType="com.mailook.closet.enums.ClothesCategory"/>
+            <arg name="clo" column="clo" javaType="java.math.BigDecimal"/>
+            <arg name="imageUrl" column="image_url" javaType="java.lang.String"/>
+            <arg name="storageStatus" column="storage_status" javaType="com.mailook.closet.enums.StorageStatus"/>
+            <arg name="storageLocationId" column="storage_location_id" javaType="java.lang.Long"/>
         </constructor>
     </resultMap>
 
     <select id="findAllByUserId" resultMap="clothesListItem">
-        SELECT c.clothes_id, c.name, c.category, c.clo, s.name AS location,
-               COALESCE(c.storage_status = 'STORED', FALSE) AS stored,
-               NULLIF(c.image_url, '') IS NOT NULL AS has_photo
-        FROM clothes c
+        SELECT c.clothes_id, c.name, c.category, c.clo,
+               CASE WHEN NULLIF(c.image_url, '') IS NOT NULL
+                    THEN CONCAT('/api/clothes/', c.clothes_id, '/photo')
+               END AS image_url,
+               c.storage_status, s.storage_location_id
+        FROM (
+            SELECT clothes_id, user_id, name, category, clo, image_url, storage_status, storage_location_id,
+                   ROW_NUMBER() OVER (
+                       PARTITION BY COALESCE(same_group_id, clothes_id)
+                       ORDER BY clothes_id DESC
+                   ) AS group_rank
+            FROM clothes
+            WHERE user_id = #{userId} AND deleted_at IS NULL
+            <if test="category != null">
+                AND category = #{category,jdbcType=VARCHAR}
+            </if>
+            <if test="storageStatus != null">
+                AND storage_status = #{storageStatus,jdbcType=VARCHAR}
+            </if>
+        ) c
         LEFT JOIN storage_locations s ON s.storage_location_id = c.storage_location_id
             AND s.user_id = c.user_id AND s.deleted_at IS NULL
-        WHERE c.user_id = #{userId} AND c.deleted_at IS NULL
+        WHERE c.group_rank = 1
         ORDER BY c.clothes_id DESC
     </select>
 

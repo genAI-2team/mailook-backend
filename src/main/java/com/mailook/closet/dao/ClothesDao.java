@@ -10,6 +10,8 @@ import org.springframework.web.bind.annotation.RequestParam;
 import com.mailook.closet.dto.ClothesPieceCreateRequest;
 import com.mailook.closet.dto.ClothesListItem;
 import com.mailook.closet.entity.Clothes;
+import com.mailook.closet.enums.ClothesCategory;
+import com.mailook.closet.enums.StorageStatus;
 
 @Mapper 
 public interface ClothesDao {
@@ -21,7 +23,10 @@ public interface ClothesDao {
     // 옷 수정
     public int update(@RequestBody Clothes clothes);
 
-    public List<ClothesListItem> findAllByUserId(@Param("userId") long userId);
+    public List<ClothesListItem> findAllByUserId(
+            @Param("userId") long userId,
+            @Param("category") ClothesCategory category,
+            @Param("storageStatus") StorageStatus storageStatus);
 
     public String findImageUrl(@Param("userId") long userId, @Param("clothesId") long clothesId);
 
