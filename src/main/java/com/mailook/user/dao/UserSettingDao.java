@@ -16,5 +16,5 @@ public interface UserSettingDao {
     int update(UserSetting userSetting);
 
     // 몸 상태와 다시 물어본 날을 수정한다.
-    int updateUnwell(UserSetting userSetting);
+    void updateUnwell(UserSetting userSetting);
 }
