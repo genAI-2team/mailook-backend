@@ -1,4 +1,31 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
-<mapper namespace="StorageLocationMapper">
+<mapper namespace="com.mailook.closet.dao.StorageLocationDao">
+    <resultMap id="storageLocation" type="com.mailook.closet.entity.StorageLocation">
+        <id property="storageLocationId" column="storage_location_id"/>
+        <result property="userId" column="user_id"/>
+        <result property="name" column="name"/>
+        <result property="deletedAt" column="deleted_at"/>
+        <result property="createdAt" column="created_at"/>
+    </resultMap>
+
+    <insert id="insert" useGeneratedKeys="true"
+            keyProperty="storageLocationId" keyColumn="storage_location_id">
+        INSERT INTO storage_locations (user_id, name)
+        VALUES (#{userId}, #{name})
+    </insert>
+
+    <select id="findAllByUserId" resultMap="storageLocation">
+        SELECT storage_location_id, user_id, name, deleted_at, created_at
+        FROM storage_locations
+        WHERE user_id = #{userId} AND deleted_at IS NULL
+        ORDER BY storage_location_id
+    </select>
+
+    <select id="findById" resultMap="storageLocation">
+        SELECT storage_location_id, user_id, name, deleted_at, created_at
+        FROM storage_locations
+        WHERE user_id = #{userId} AND storage_location_id = #{storageLocationId}
+          AND deleted_at IS NULL
+    </select>
 </mapper>

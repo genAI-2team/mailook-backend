@@ -10,11 +10,11 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor 
 @NoArgsConstructor 
 public class StorageLocation {
-    private long storage_location_id;
-    private long user_id;
+    private long storageLocationId;
+    private long userId;
     private String name;
-    private Date deleted_at;
-    private Date created_at;
+    private Date deletedAt;
+    private Date createdAt;
 
 
 
