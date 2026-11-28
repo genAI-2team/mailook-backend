@@ -8,6 +8,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 
 import com.mailook.closet.dto.ClothesPieceCreateRequest;
+import com.mailook.closet.dto.ClothesListItem;
 import com.mailook.closet.entity.Clothes;
 
 @Mapper 
@@ -20,8 +21,9 @@ public interface ClothesDao {
     // 옷 수정
     public int update(@RequestBody Clothes clothes);
 
-    // 페이징 처리 나중에, 옷 모두 조회
-    public List<Clothes> selectAll();
+    public List<ClothesListItem> findAllByUserId(@Param("userId") long userId);
+
+    public String findImageUrl(@Param("userId") long userId, @Param("clothesId") long clothesId);
 
     // soft 형식으로 삭제 처리
     public int delete(@RequestParam Long clothesId);  

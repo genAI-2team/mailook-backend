@@ -4,9 +4,12 @@ import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.net.URLConnection;
 import java.nio.file.Files;
+import java.nio.file.LinkOption;
 import java.nio.file.Path;
 import java.util.List;
 
+import org.springframework.core.io.FileSystemResource;
+import org.springframework.core.io.Resource;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -15,6 +18,7 @@ import org.springframework.web.server.ResponseStatusException;
 import com.mailook.closet.dao.ClothesDao;
 import com.mailook.closet.dao.StorageLocationDao;
 import com.mailook.closet.dto.ClothesCreateRequest;
+import com.mailook.closet.dto.ClothesListItem;
 import com.mailook.closet.dto.ClothesPieceCreateRequest;
 import com.mailook.closet.entity.Clothes;
 
@@ -32,6 +36,29 @@ public class ClothesService {
     public ClothesService(ClothesDao clothesDao, StorageLocationDao storageLocationDao) {
         this.clothesDao = clothesDao;
         this.storageLocationDao = storageLocationDao;
+    }
+
+    public List<ClothesListItem> findAll(long userId) {
+        return clothesDao.findAllByUserId(userId);
+    }
+
+    public Resource findPhoto(long userId, long clothesId) {
+        String imageUrl = clothesDao.findImageUrl(userId, clothesId);
+        // 등록할 때 만든 사용자별 상대 경로와 파일 이름만 허용한다.
+        if (imageUrl == null || !imageUrl.matches(userId + "/photo-[0-9]+\\.(jpg|png|gif)")) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "옷 사진을 찾을 수 없습니다.");
+        }
+
+        Path directory = photoDirectory(userId);
+        Path photo = directory.resolve(imageUrl.substring(imageUrl.indexOf('/') + 1));
+        if (Files.isSymbolicLink(directory) || !Files.isRegularFile(photo, LinkOption.NOFOLLOW_LINKS)) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "옷 사진을 찾을 수 없습니다.");
+        }
+        return new FileSystemResource(photo);
+    }
+
+    private Path photoDirectory(long userId) {
+        return Path.of(System.getProperty("user.home"), ".mailook", "clothes-photos", Long.toString(userId));
     }
 
     /** 인증된 사용자의 옷 한 벌 또는 여러 벌을 첨부 사진과 함께 등록한다. */
@@ -84,7 +111,7 @@ public class ClothesService {
         // 사용자별 디렉터리에 파일을 한 번 저장하고, DB에는 상대 경로를 기록한다.
         Path photo = null;
         try {
-            Path directory = Path.of(System.getProperty("user.home"), ".mailook", "clothes-photos", Long.toString(userId));
+            Path directory = photoDirectory(userId);
             Files.createDirectories(directory);
             photo = Files.createTempFile(directory, "photo-", extension);
             image.transferTo(photo);

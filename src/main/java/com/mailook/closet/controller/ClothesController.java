@@ -1,7 +1,12 @@
 package com.mailook.closet.controller;
 
+import java.util.List;
+
+import org.springframework.core.io.Resource;
+import org.springframework.http.CacheControl;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
+import org.springframework.http.MediaTypeFactory;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
@@ -16,6 +21,7 @@ import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
 
 import com.mailook.closet.dto.ClothesCreateRequest;
+import com.mailook.closet.dto.ClothesListItem;
 import com.mailook.closet.dto.ClothesResponse;
 import com.mailook.closet.service.ClothesService;
 
@@ -31,21 +37,36 @@ public class ClothesController {
 
     // 옷 목록 조회
     @GetMapping
-    public ResponseEntity<Void> getClothes() {
-        // TODO: 목록 조회 서비스 연결
-        return ResponseEntity.status(HttpStatus.NOT_IMPLEMENTED).build();
+    public List<ClothesListItem> getClothes(@AuthenticationPrincipal Jwt jwt) {
+        if (jwt == null || !(jwt.getClaim("userId") instanceof Number userId)) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "다시 로그인해 주세요.");
+        }
+        return clothesService.findAll(userId.longValue());
+    }
+
+    @GetMapping("/{clothesId}/photo")
+    public ResponseEntity<Resource> getClothesPhoto(
+            @PathVariable("clothesId") long clothesId, @AuthenticationPrincipal Jwt jwt) {
+        if (jwt == null || !(jwt.getClaim("userId") instanceof Number userId)) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "다시 로그인해 주세요.");
+        }
+        Resource photo = clothesService.findPhoto(userId.longValue(), clothesId);
+        return ResponseEntity.ok()
+                .cacheControl(CacheControl.noStore())
+                .contentType(MediaTypeFactory.getMediaType(photo).orElse(MediaType.APPLICATION_OCTET_STREAM))
+                .body(photo);
     }
 
     // 옷 상세 조회
     @GetMapping("/{clothesId}")
-    public ResponseEntity<Void> getClothesDetail(@PathVariable("clothesId") Long clothesId) {
+    public ResponseEntity<ClothesResponse> getClothesDetail(@PathVariable("clothesId") Long clothesId) {
         // TODO: 상세 조회 서비스 연결
         return ResponseEntity.status(HttpStatus.NOT_IMPLEMENTED).build();
     }
 
     // 등록 전 옷 분류
     @PostMapping("/classify")
-    public ResponseEntity<Void> classifyClothes() {
+    public ResponseEntity<ClothesResponse> classifyClothes() {
         // TODO: 분류 요청 데이터 정의 및 분류 서비스 연결
         return ResponseEntity.status(HttpStatus.NOT_IMPLEMENTED).build();
     }
